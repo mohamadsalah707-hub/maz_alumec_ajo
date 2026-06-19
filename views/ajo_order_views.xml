@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_ajo_order_list" model="ir.ui.view">
+        <field name="name">ajo.order.list</field>
+        <field name="model">ajo_order</field>
+        <field name="arch" type="xml">
+            <list string="AJO Orders">
+                <field name="name"/>
+                <field name="project_ref"/>
+                <field name="warehouse_id"/>
+                <field name="warehouse_code"/>
+                <field name="pm_id" widget="many2one_avatar_user"/>
+                <field name="date"/>
+                <field name="block"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_ajo_order_line_search" model="ir.ui.view">
+        <field name="name">ajo.order.line.search</field>
+        <field name="model">ajo_order_line</field>
+        <field name="arch" type="xml">
+            <search string="Search Order Lines">
+                <filter string="Glass Material" 
+                        name="filter_glass_material" 
+                        domain="[('material_type', '=', 'glass')]"/>
+                <filter string="ALUM Material" 
+                        name="filter_alum_material" 
+                        domain="[('material_type', '=', 'aluminum')]"/>
+            </search>
+        </field>
+    </record>
+    <record id="view_ajo_order_form" model="ir.ui.view">        
+        <field name="name">ajo.order.form</field>
+        <field name="model">ajo_order</field>
+        <field name="arch" type="xml">
+            <form string="AJO Order">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="AJO-0001" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Project Information">
+                            <field name="project_ref"/>
+                            <field name="project_code"/>
+                            <field name="pm_id" widget="many2one_avatar_user"/>
+                        </group>
+                        <group string="Logistics">
+                            <field name="warehouse_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="warehouse_code" readonly="1"/>
+                            <field name="date"/>
+                        </group>
+                    </group>
+                    <group string="Location Details">
+                        <group>
+                            <field name="block"/>
+                            <field name="handle"/>
+                        </group>
+                        <group>
+                            <field name="floor"/>
+                        </group>
+                    </group>                    
+                    <!-- The Order Lines List Embedded Inside a Tab -->
+                    <notebook>
+                        <page string="Profiles" name="order_lines">
+                            <field name="alum_order_line_ids" context="{'default_material_type': 'aluminum'}" >
+                                <list editable="bottom">
+                                    <field name="item_ref"/>
+                                    <field name="product_id" domain="[('product_tmpl_id.material_type', '!=', False), ('product_tmpl_id.material_type', '=', 'aluminum')]"/>
+                                    <field name="alum_profile"/>
+                                    <field name="color"/>
+                                    <field name="width"/>
+                                    <field name="height"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="angle"/>
+                                    <field name="length"/>
+                                </list>
+                            </field>
+                            <div class="o_row">
+                                <button name="%(action_cutlist_sum_form)d" 
+                                        type="action" 
+                                        string="View Glass Catalog" 
+                                        class="btn-link" 
+                                        icon="fa-external-link"/>
+                            </div>
+                        </page>
+                        <page string="Glass" name="order_lines_glass">
+                            <field name="glass_order_line_ids" context="{'default_material_type': 'glass'}" >
+                                <list editable="bottom">
+                                    <field name="item_ref"/>
+                                    <field name="product_id" domain="[('product_tmpl_id.material_type', '!=', False), ('product_tmpl_id.material_type', '=', 'glass')]"/>
+                                    <field name="alum_profile"/>
+                                    <field name="color"/>
+                                    <field name="width"/>
+                                    <field name="height"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="angle"/>
+                                    <field name="material_type"/>
+                                    <field name="length"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Accesories" name="order_lines_acc">
+                            <field name="acc_order_line_ids" context="{'default_material_type': 'accesory'}" >
+                                <list editable="bottom">
+                                    <field name="item_ref"/>
+                                    <field name="product_id" domain="[('product_tmpl_id.material_type', '!=', False), ('product_tmpl_id.material_type', '=', 'accesory')]"/>
+                                    <field name="alum_profile"/>
+                                    <field name="color"/>
+                                    <field name="width"/>
+                                    <field name="height"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="angle"/>
+                                    <field name="material_type"/>
+                                    <field name="length"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="ACP/SCP" name="order_lines_acp">
+                            <field name="acp_order_line_ids" context="{'default_material_type': 'acp'}" >
+                                <list editable="bottom">
+                                    <field name="item_ref"/>
+                                    <field name="product_id" domain="[('product_tmpl_id.material_type', '!=', False), ('product_tmpl_id.material_type', '=', 'acp')]"/>
+                                    <field name="alum_profile"/>
+                                    <field name="color"/>
+                                    <field name="width"/>
+                                    <field name="height"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="angle"/>
+                                    <field name="material_type"/>
+                                    <field name="length"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Steel" name="order_lines_steel">
+                            <field name="steel_order_line_ids" context="{'default_material_type': 'steel'}" >
+                                <list editable="bottom">
+                                    <field name="item_ref"/>
+                                    <field name="product_id" domain="[('product_tmpl_id.material_type', '!=', False), ('product_tmpl_id.material_type', '=', 'steel')]"/>
+                                    <field name="alum_profile"/>
+                                    <field name="color"/>
+                                    <field name="width"/>
+                                    <field name="height"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="angle"/>
+                                    <field name="material_type"/>
+                                    <field name="length"/>
+                                </list>
+                            </field>
+                        </page>                        
+                    </notebook>
+                </sheet>
+                    <!-- 2. PLACE THE CHATTER PANEL HERE (Outside <sheet>, inside <form>) -->
+                    <chatter>
+                        <field name="message_follower_ids"/>
+                        <field name="activity_ids"/>
+                        <field name="message_ids"/>
+                    </chatter>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ajo_order" model="ir.actions.act_window">
+        <field name="name">AJO Orders</field>
+        <field name="res_model">ajo_order</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_maz_angle" model="ir.actions.act_window">
+        <field name="name">Angles</field>
+        <field name="res_model">angle</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_maz_profile" model="ir.actions.act_window">
+        <field name="name">Profiles</field>
+        <field name="res_model">alum_profile</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_maz_color" model="ir.actions.act_window">
+        <field name="name">Colors</field>
+        <field name="res_model">product_color</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    
+    <menuitem
+        id="menu_ajo"
+        name="ALUMEC Prod"
+        web_icon="maz_alumec_ajo,static/description/alumec.png"
+        action="action_ajo_order"
+        sequence="10"/>
+    <menuitem
+        id="ajo_settings"
+        name="Settings"
+        parent="menu_ajo"
+        sequence="10"/>    
+    <menuitem
+        id="settings_angle"
+        name="Angles"
+        parent="ajo_settings"
+        action="action_maz_angle"
+        sequence="10"/>   
+    <menuitem
+        id="settings_color"
+        name="Colors"
+        parent="ajo_settings"
+        action="action_maz_color"
+        sequence="10"/>   
+    <menuitem
+        id="settings_profile"
+        name="Profiles"
+        parent="ajo_settings"
+        action="action_maz_profile"
+        sequence="10"/>
+        
+</odoo>

@@ -1,0 +1,25 @@
+
+{
+    'name': 'Maz Alumec Ajo',
+    'version': '1.1',
+    'category': 'Sales',
+    'summary': 'Alumec Ajo.',
+    'description': """This module created to handle aluminum job order for alumec.""",
+    'author': 'MAZ',
+    'company': 'MAZ',
+    'maintainer': 'MAZ',
+    'website': "https://www.maz.com",
+    'depends': ['base', 'mail', 'crm', 'sale_management', 'account', 'stock','purchase','sales_team','sale_stock'],
+    'data': [
+        'security/ir.model.access.csv',
+        'views/product_views.xml',
+       #'views/purchase_order_views.xml',
+        'views/ajo_order_views.xml',
+        'views/cutlist_sum_views.xml',
+    ],
+    'images': ['static/description/alumec.png'],
+    'license': 'AGPL-3',
+    'installable': True,
+    'auto_install': False,
+    'application': False,
+}

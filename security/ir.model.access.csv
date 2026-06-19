@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ajo_order,ajo.order,model_ajo_order,base.group_user,1,1,1,1
+access_ajo_order_line,ajo.order.line,model_ajo_order_line,base.group_user,1,1,1,1
+access_angle,angle,model_angle,base.group_user,1,1,1,1
+access_color,color,model_product_color,base.group_user,1,1,1,1
+access_alum_profile,alum.profile,model_alum_profile,base.group_user,1,1,1,1
+access_cutlist_sum,cutlist.sum,model_cutlist_sum,base.group_user,1,1,1,1
+access_cutlist_sum_lines,cutlist.sum.lines,model_cutlist_sum_lines,base.group_user,1,1,1,1
