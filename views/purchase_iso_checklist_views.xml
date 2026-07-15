@@ -5,12 +5,13 @@
         <field name="model">purchase.order.line.checklist</field>
         <field name="arch" type="xml">
             <list string="ISO Checklists">
-                <field name="purchase_order_id"/>
-                <field name="purchase_line_id"/>
+                <field name="purchase_order_id" class="w-10"/>
+                <field name="partner_id" class="w-10"/>
                 <field name="score_total"/>
                 <field name="max_score"/>
                 <field name="score_percentage"/>
-                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'completed'"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'completed'" class="w-10"/>
+                <field name="comments" class="w-70"/>
             </list>
         </field>
     </record>
@@ -27,13 +28,13 @@
                 <sheet>
                     <div class="oe_title">
                         <h1>
-                            <span>ISO Checklist for Purchase Order Line</span>
+                            <span>ISO Checklist for Purchase Order</span>
                         </h1>
                     </div>
                     <group>
                         <group>
                             <field name="purchase_order_id" readonly="1"/>
-                            <field name="purchase_line_id" readonly="1"/>
+                            <field name="partner_id" readonly="1"/>
                         </group>
                         <group>
                             <field name="max_score" readonly="1"/>
@@ -43,16 +44,54 @@
                     </group>
                     <separator string="Quality Checks"/>
                     <group>
-                        <field name="quality_check"/>
-                        <field name="quantity_check"/>
-                        <field name="packaging_check"/>
-                        <field name="documentation_check"/>
-                        <field name="expiry_date_check"/>
-                        <field name="price_verification"/>
+                        <group>
+                            <field name="fax_check"/>
+                            <field name="fax_check_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="ral_color_check"/>
+                            <field name="ral_color_check_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="quantity_verified"/>
+                            <field name="quantity_verified_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="price_approved"/>
+                            <field name="price_approved_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="glass_type_check"/>
+                            <field name="glass_type_check_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="polished_glass_edge"/>
+                            <field name="polished_glass_edge_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="structural_sealant"/>
+                            <field name="structural_sealant_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="dimensions_checked"/>
+                            <field name="dimensions_checked_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="stock_quantity_checked"/>
+                            <field name="stock_quantity_checked_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="project_manager_approval"/>
+                            <field name="project_manager_approval_comments" placeholder="Add comments..."/>
+                        </group>
+                        <group>
+                            <field name="general_manager_approval"/>
+                            <field name="general_manager_approval_comments" placeholder="Add comments..."/>
+                        </group>
                     </group>
-                    <separator string="Notes"/>
+                    <separator string="General comments"/>
                     <group>
-                        <field name="notes" nolabel="1" placeholder="Add custom notes here..."/>
+                        <field name="comments" placeholder="Add general comments..."/>
                     </group>
                 </sheet>
             </form>
@@ -65,7 +104,7 @@
         <field name="arch" type="xml">
             <search>
                 <field name="purchase_order_id"/>
-                <field name="purchase_line_id"/>
+                <field name="partner_id"/>
                 <field name="state"/>
                 <separator/>
                 <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
@@ -86,7 +125,7 @@
         ]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                No ISO Checklists found. Create one from a purchase order line.
+                No ISO Checklists found. Create one from a purchase order.
             </p>
         </field>
     </record>

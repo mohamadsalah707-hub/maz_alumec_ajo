@@ -4,34 +4,12 @@ from odoo.tools import float_compare
 from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT
 from datetime import datetime, timedelta
 from collections import defaultdict
+    
+import logging
+_logger = logging.getLogger('MAZ PO')
 
 class PurchaseOrder(models.Model):
-    _inherit = 'purchase.order'
-    x_is_taxable = fields.Boolean(string="Official",default=True, store=True)
-    x_defaultwh_id = fields.Integer(string="Default WH",default=1, store=True)
-    x_priority = fields.Selection([('Urgent','Urgent'),('Top Urgent','Top Urgent'),('Normal','Normal')],'Priority', required=True, default='Normal')
-    @api.onchange('x_is_taxable')
-    def _onchange_x_is_taxable(self):
-        if not self._context.get('default_partner_id'):
-            self.partner_id = False
-        else:
-            self.partner_id = self._context.get('default_partner_id')
-        self.order_line=False
-        if self.x_is_taxable:
-            self.x_defaultwh_id = 1  
-        else:
-            self.x_defaultwh_id = 2 
-            
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            if vals.get('x_is_taxable'):
-                vals['name'] = self.env['ir.sequence'].next_by_code('purchase.order')
-            else:
-                vals['name'] = self.env['ir.sequence'].next_by_code('purchase.order2')
-        res = super(PurchaseOrder, self).create(vals_list)
-        return res
+    _inherit = 'purchase.order'         
 
     def action_open_iso_checklist(self):
         order_ids = self.ids or self.env.context.get('active_ids', [])
@@ -46,7 +24,7 @@ class PurchaseOrder(models.Model):
             order='id desc',
             limit=1,
         )
-        form_view_id = self.env.ref('maz_stock_management.purchase_order_line_checklist_form_view').id
+        form_view_id = self.env.ref('maz_alumec_ajo.purchase_order_line_checklist_form_view').id
         if checklist:
             return {
                 'name': 'ISO Checklist',
@@ -79,20 +57,19 @@ class PurchaseOrderLine(models.Model):
     """ Add new button in purchase order line """
     _inherit = 'purchase.order.line'
 
-    # @api.model
-    # def _default_product_warehouse_id(self):
-        # return self.order_id.x_defaultwh_id
-        # , default=_default_product_warehouse_id
-           
-    product_warehouse_id = fields.Many2one(
-        'stock.warehouse', string='Warehouse', help='Choose warehouses', compute='_compute_product_warehouse')#
-    x_description = fields.Text('Description')
+
+    product_profile = fields.Char(string='Product Profile', )
+    color = fields.Char(string='Color', )
+    total_length = fields.Float(string='Total Length', digits=(16, 2),)
+    area = fields.Float(string='Area/m²', digits=(16, 2), compute='_compute_area', store=True)
+    profile_length = fields.Float(string='Profile Length', digits=(16, 2), )
+    width = fields.Float(string='Width', digits=(16, 2), )
     
     # ISO Checklist fields
     checklist_ids = fields.One2many(
         'purchase.order.line.checklist',
         'purchase_line_id',
-        string='ISO Checklists'
+        string='ISO Checklists' 
     )
     checklist_count = fields.Integer(
         string='Checklist Count',
@@ -103,11 +80,15 @@ class PurchaseOrderLine(models.Model):
         string='Latest Score',
         compute='_compute_latest_checklist_score'
     )
-    
-    @api.depends('order_id.x_defaultwh_id')
-    def _compute_product_warehouse(self):
+    @api.depends('width', 'total_length')
+    def _compute_area(self):
         for line in self:
-            line.product_warehouse_id = line.order_id.x_defaultwh_id
+            logging_info = f"Computing area for line ID {line.id}: width={line.width}, total_length={line.total_length}"
+            _logger.info(logging_info)
+            if line.width and line.total_length:
+                line.area = (line.width * line.total_length) / 1000000.0
+            else:
+                line.area = 0.0
         
     @api.depends('checklist_ids')
     def _compute_checklist_count(self):
@@ -121,17 +102,7 @@ class PurchaseOrderLine(models.Model):
                 line.latest_checklist_score = latest.score_total
             else:
                 line.latest_checklist_score = 0
-        
-    @api.onchange('product_id')
-    def onchange_product_id(self):
-        if self._context.get('y'):
-            self.product_uom = self.product_id.uom_po_id or self.product_id.uom_id
-            self._compute_tax_id()
-            self.with_context({})
-            return
-        self.x_description = self.product_id.description
-        res = super(PurchaseOrderLine, self).onchange_product_id()
-    
+
     def action_open_iso_checklist(self):
         """Open ISO checklist form for this purchase order line"""
         self.ensure_one()

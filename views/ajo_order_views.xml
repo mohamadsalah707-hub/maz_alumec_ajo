@@ -5,6 +5,7 @@
         <field name="model">ajo_order</field>
         <field name="arch" type="xml">
             <list string="AJO Orders">
+                <field name="company_id" groups="base.group_multi_company"/>                       
                 <field name="name"/>
                 <field name="project_ref"/>
                 <field name="warehouse_id"/>
@@ -34,10 +35,50 @@
         <field name="model">ajo_order</field>
         <field name="arch" type="xml">
             <form string="AJO Order">
+                <header>
+                    <button name="action_mopen_label_layout"
+                            type="object"
+                            string="Print Barcodes"
+                            class="oe_highlight"
+                            icon="fa-print"/>
+                    <button name="action_popen_label_layout"
+                            type="object"
+                            string="Print Parent Barcodes"
+                            class="oe_highlight"
+                            icon="fa-print"/>
+                    <span class="oe_title">
+                        Qty to Order:    
+                    </span>       
+                    <button name="action_open_cutlist_sum"
+                            type="object"
+                            string="Profiles"
+                            class="oe_highlight"
+                            icon="fa-external-link"/>
+                    <button name="action_open_glass_cutlist_sum"
+                        type="object"
+                        string="Glass"
+                        class="oe_highlight"
+                        icon="fa-external-link"/>
+                    <button name="action_open_acc_cutlist_sum"
+                        type="object"
+                        string="Accesories"
+                        class="oe_highlight"
+                        icon="fa-external-link"/>
+                    <button name="action_open_acp_cutlist_sum"
+                        type="object"
+                        string="ACP/SCP"
+                        class="oe_highlight"
+                        icon="fa-external-link"/>
+                    <button name="action_open_steel_cutlist_sum"
+                        type="object"
+                        string="Steel"
+                        class="oe_highlight"
+                        icon="fa-external-link"/>    
+                </header>
                 <sheet>
                     <div class="oe_title">
                         <h1>
-                            <field name="name" placeholder="AJO-0001" readonly="1"/>
+                            <field name="name" placeholder="AJO-0001"/>
                         </h1>
                     </div>
                     <group>
@@ -78,13 +119,6 @@
                                     <field name="length"/>
                                 </list>
                             </field>
-                            <div class="o_row">
-                                <button name="%(action_cutlist_sum_form)d" 
-                                        type="action" 
-                                        string="View Glass Catalog" 
-                                        class="btn-link" 
-                                        icon="fa-external-link"/>
-                            </div>
                         </page>
                         <page string="Glass" name="order_lines_glass">
                             <field name="glass_order_line_ids" context="{'default_material_type': 'glass'}" >
@@ -104,10 +138,10 @@
                             </field>
                         </page>
                         <page string="Accesories" name="order_lines_acc">
-                            <field name="acc_order_line_ids" context="{'default_material_type': 'accesory'}" >
+                            <field name="acc_order_line_ids" context="{'default_material_type': 'accessory'}" >
                                 <list editable="bottom">
                                     <field name="item_ref"/>
-                                    <field name="product_id" domain="[('product_tmpl_id.material_type', '!=', False), ('product_tmpl_id.material_type', '=', 'accesory')]"/>
+                                    <field name="product_id" domain="[('product_tmpl_id.material_type', '!=', False), ('product_tmpl_id.material_type', '=', 'accessory')]"/>
                                     <field name="alum_profile"/>
                                     <field name="color"/>
                                     <field name="width"/>
@@ -191,13 +225,18 @@
         id="menu_ajo"
         name="ALUMEC Prod"
         web_icon="maz_alumec_ajo,static/description/alumec.png"
-        action="action_ajo_order"
         sequence="10"/>
+    <menuitem
+        id="menu_ajo_order"
+        name="Aluminium Job Order"
+        parent="menu_ajo"
+        action="action_ajo_order"
+        sequence="12"/>
     <menuitem
         id="ajo_settings"
         name="Settings"
         parent="menu_ajo"
-        sequence="10"/>    
+        sequence="20"/>    
     <menuitem
         id="settings_angle"
         name="Angles"
@@ -216,5 +255,28 @@
         parent="ajo_settings"
         action="action_maz_profile"
         sequence="10"/>
-        
+
+    <menuitem id="products" name="Products" 
+              parent="menu_ajo"
+              action="stock.product_template_action_product"
+              sequence="14"/> 
+
+    <menuitem id="purchase_rfq" name="Purchase RFQ" 
+              parent="menu_ajo"
+              action="purchase.purchase_rfq"
+              sequence="15"/>               
+
+    <menuitem id="purchase_order" name="Purchase order" 
+              parent="menu_ajo"
+              action="purchase.purchase_form_action"
+              sequence="16"/>
+
+    <menuitem id="manufacturing" name="Manufacturing" 
+              parent="menu_ajo"
+              action="mrp.mrp_production_action"
+              sequence="17"/> 
+    <menuitem id="iso_checklists" name="ISO Checklists" 
+              parent="menu_ajo"
+              action="action_purchase_order_line_checklist"
+              sequence="18"/>                                                    
 </odoo>

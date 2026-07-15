@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<odoo>
+    <template id="main_menu_color" inherit_id="web.layout">
+        <xpath expr="//head" position="inside">
+            <style>
+                /* Force CSS variables to white background */
+                :root {
+                    --o-home-menu-bg: #ffffff !important;
+                    --o-home-menu-background-color: #ffffff !important;
+                    --o-home-menu-background-image: none !important;
+                }
+
+                /* Force standard background container colors to white */
+                .o_home_menu, .o_apps_menu, [data-menu-xmlid="root"] {
+                    background: #ffffff !important;
+                    background-image: none !important;
+                }
+
+                /* Change app label texts to dark charcoal for perfect readability */
+                .o_home_menu .o_apps .o_app .o_caption,
+                .o_home_menu .o_caption,
+                .o_home_menu .o_app_name {
+                    color: #212529 !important;
+                    text-shadow: none !important;
+                }
+
+                /* Make search bar text dark when typing an app name */
+                .o_home_menu .o_menu_search_input {
+                    color: #212529 !important;
+                }
+            </style>
+        </xpath>
+    </template>
+</odoo>

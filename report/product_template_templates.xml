@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_simple_label_dymo_ajo">
+        <div class="o_label_sheet o_label_dymo" t-att-style="padding_page">
+            <div class="o_label_full" t-att-style="table_style">
+                <div class="o_label_small_name" style="line-height: 100%;background-color: transparent;padding-top: 1px;">
+                    <t t-if="line_data['item_ref']">
+                        <div><strong>Item:</strong> <span t-out="line_data['item_ref']"/></div>
+                    </t>
+                    <t t-if="line_data['length']">
+                        <div><strong>Length:</strong> <span t-out="line_data['length']"/> mm</div>
+                    </t>
+                    <t t-if="line_data['color']">
+                        <div><strong>Color:</strong> <span t-out="line_data['color']"/></div>
+                    </t>
+                    <t t-if="line_data['alum_profile']">
+                        <div><strong>Profile:</strong> <span t-out="line_data['alum_profile']"/></div>
+                    </t>
+                </div>
+                <div class="text-start o_label_small_barcode">
+                    <t t-if="line_data['barcode']">
+                        <!-- `quiet=0` to remove the left and right margins on the barcode -->
+                        <div t-out="line_data['barcode']" style="padding:0" t-options="{'widget': 'barcode', 'quiet': 0, 'symbology': 'auto', 'img_style': barcode_size}"/>
+                        <div class="o_label_name" style="height:1.7em;background-color: transparent;">
+                            <span t-out="line_data['product'].name"/>: <span t-out="line_data['barcode']"/>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="report_productlabel_dymo_ajo">
+        <t t-call="web.html_container">
+            <t t-set="barcode_size" t-value="'width:45.5mm;height:7.5mm'"/>
+            <t t-set="table_style" t-value="'width:100%;height:32mm;'"/>
+            <t t-set="padding_page" t-value="'padding: 2mm'"/>
+            <t t-foreach="quantity.items()" t-as="product_and_lines">
+                <t t-set="product" t-value="product_and_lines[0]"/>
+                <t t-foreach="product_and_lines[1]" t-as="line_data">
+                    <t t-foreach="range(line_data['qty'])" t-as="qty_copy">
+                        <t t-call="maz_alumec_ajo.report_simple_label_dymo_ajo"/>
+                    </t>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_producttemplatelabel_dymo">
+        <t t-call="web.basic_layout">
+            <div class="page">
+                <t t-call="maz_alumec_ajo.report_productlabel_dymo_ajo"/>
+            </div>
+        </t>
+    </template>
+
+</odoo>

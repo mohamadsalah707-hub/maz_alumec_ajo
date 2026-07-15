@@ -12,10 +12,17 @@
     'depends': ['base', 'mail', 'crm', 'sale_management', 'account', 'stock','purchase','sales_team','sale_stock'],
     'data': [
         'security/ir.model.access.csv',
+        'security/ir_rule.xml',
+        'wizard/product_label_layout_views.xml',
         'views/product_views.xml',
-       #'views/purchase_order_views.xml',
+        'views/purchase_order_views.xml',
         'views/ajo_order_views.xml',
         'views/cutlist_sum_views.xml',
+        'views/purchase_iso_checklist_views.xml',
+        'report/product_reports.xml',
+        'report/product_template_templates.xml',
+        'data/cutlist_stage_data.xml',
+        #'views/main_menu_color.xml'
     ],
     'images': ['static/description/alumec.png'],
     'license': 'AGPL-3',

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_ajo_order_company" model="ir.rule">
+        <field name="name">AJO Orders: company</field>
+        <field name="model_id" ref="model_ajo_order"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_cutlist_sum" model="ir.rule">
+        <field name="name">Cutlist Summary multi-company</field>
+        <field name="model_id" ref="model_cutlist_sum"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

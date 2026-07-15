@@ -1,4 +1,6 @@
-from odoo import models, fields, api
+from odoo import _, api, fields, models
+import logging
+_logger = logging.getLogger("MAZ")
 
 class AjoOrder(models.Model):
     _name = 'ajo_order'
@@ -6,14 +8,16 @@ class AjoOrder(models.Model):
     _order = 'date desc, id desc'
     # 1. Inherit the mail mixins here
     _inherit = ['mail.thread', 'mail.activity.mixin']
+    _check_company_auto = True
 
     name = fields.Char(
         string='AJO Nb.', 
-        required=True, 
-        copy=False, 
-        readonly=True, 
-        default=lambda self: self.env['ir.sequence'].next_by_code('ajo.order') or '/'
+        required=True
     )
+    company_id = fields.Many2one(
+        comodel_name='res.company',
+        required=True, index=True,
+        default=lambda self: self.env.company)
     project_ref = fields.Char(string='Project Ref', required=True)
     project_code = fields.Char(string='Project Code', required=True)
     pm_id = fields.Many2one('res.users', string='P.M.', required=True, default=lambda self: self.env.user)
@@ -62,8 +66,8 @@ class AjoOrder(models.Model):
     acc_order_line_ids = fields.One2many(
         'ajo_order_line', 
         'order_id', 
-        string='Accesories',
-        domain=[('material_type', '=', 'accesory')]
+        string='Accessories',
+        domain=[('material_type', '=', 'accessory')]
     )
     acp_order_line_ids = fields.One2many(
         'ajo_order_line', 
@@ -77,7 +81,85 @@ class AjoOrder(models.Model):
         string='Steel',
         domain=[('material_type', '=', 'steel')]
     )
-    
+# to change this action for printing barcodes    
+    def action_mopen_label_layout(self):
+        _logger.warning(' begin22 ')
+        _logger.warning(self.order_line_ids.product_id.ids)
+        _logger.warning(self.order_line_ids.product_tmpl_id.ids)
+        view = self.env.ref('maz_alumec_ajo.product_label_layout_form')
+        return {
+            'name': _('Choose Labels Layout'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'maz_alumec_ajo.product_label_layout',
+            'views': [(view.id, 'form')],
+            'target': 'new',
+            'context': {
+                'default_product_ids': self.order_line_ids.product_id.ids,
+                'default_ajo_line_ids': self.order_line_ids.ids,
+                'default_print': 'child',
+                'default_quantity': 1},
+        }
+
+    def _open_cutlist_sum_for_material(self, material_type):
+        self.ensure_one()
+        existing = self.env['cutlist_sum'].search([
+            ('ajo_order_id', '=', self.id),
+            ('material_type', '=', material_type)
+        ], limit=1)
+        if existing:
+            return {
+                'name': _('Cut List Summary'),
+                'type': 'ir.actions.act_window',
+                'res_model': 'cutlist_sum',
+                'view_mode': 'form',
+                'res_id': existing.id,
+                'target': 'current',
+            }
+        return {
+            'name': _('Cut List Summary'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'cutlist_sum',
+            'view_mode': 'form',
+            'target': 'current',
+            'context': {
+                'default_ajo_order_id': self.id,
+                'default_material_type': material_type,
+            },
+        }
+
+    def action_open_cutlist_sum(self):
+        return self._open_cutlist_sum_for_material('aluminum')
+
+    def action_open_glass_cutlist_sum(self):
+        return self._open_cutlist_sum_for_material('glass')
+
+    def action_open_acc_cutlist_sum(self):
+        return self._open_cutlist_sum_for_material('accessory')
+
+    def action_open_acp_cutlist_sum(self):
+        return self._open_cutlist_sum_for_material('acp')
+
+    def action_open_steel_cutlist_sum(self):
+        return self._open_cutlist_sum_for_material('steel')
+
+    def action_popen_label_layout(self):
+        _logger.warning(' begin22 ')
+        _logger.warning(self.order_line_ids.product_id.ids)
+        _logger.warning(self.order_line_ids.product_tmpl_id.ids)
+        view = self.env.ref('maz_alumec_ajo.product_label_layout_form')
+        return {
+            'name': _('Choose Labels Layout'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'maz_alumec_ajo.product_label_layout',
+            'views': [(view.id, 'form')],
+            'target': 'new',
+            'context': {
+                'default_product_ids': self.order_line_ids.item_ref.ids,
+                'default_ajo_line_ids': self.order_line_ids.ids,
+                'default_print': 'parent',
+                'default_quantity': 1},
+        }
+
 
 
 class Angle(models.Model):
@@ -90,8 +172,13 @@ class AjoOrderLine(models.Model):
     _description = 'AJO Order Line'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     # Relational field to the parent order
+    _check_company_auto = True
 
     order_id = fields.Many2one('ajo_order', string='Order Reference', ondelete='cascade', required=True)
+    
+    company_id = fields.Many2one(
+        related='order_id.company_id',
+        store=True, index=True, precompute=True)
     item_ref = fields.Many2one(
         comodel_name='product.product',
         string="Item Ref",
@@ -101,7 +188,7 @@ class AjoOrderLine(models.Model):
     product_id = fields.Many2one(
         comodel_name='product.product',
         string="Product",
-        change_default=True, ondelete='restrict', index='btree_not_null',store=True,
+        change_default=True, ondelete='restrict', index='btree_not_null',store=True,required=True,
         check_company=True)
     product_tmpl_id = fields.Many2one(
         string="Product Template",

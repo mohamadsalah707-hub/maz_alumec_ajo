@@ -19,6 +19,10 @@
         <field name="model">cutlist_sum</field>
         <field name="arch" type="xml">
             <form string="Cut List Summary">
+                    <header>
+						<button string="Raise RFQ" name="action_new_rfq" type="object" class="oe_highlight" />
+					</header>
+
                 <sheet>
                     <div class="oe_title">
                         <h1>
@@ -26,11 +30,12 @@
                         </h1>
                     </div>
                     <group>
-                        <group string="Order Information">
-                            <field name="ajo_order_id"/>
-                            <field name="project_code"/>
-                            <field name="date"/>
-                        </group>
+                    <group string="Order Information">
+                        <field name="ajo_order_id"/>
+                        <field name="project_code"/>
+                        <field name="date"/>
+                        <field name="material_type"/>
+                    </group>
                         <group string="Logistics">
                             <field name="warehouse_id"/>
                             <field name="vendor_id"/>
@@ -40,17 +45,16 @@
                     <group string="Totals">
                         <field name="totqtytoorder"/>
                         <field name="totmaxqtyneeded"/>
+                        <field name="tot_total_height"/>
                     </group>
-                    <footer>
-                        <button name="action_generate_lines" type="object" string="Generate Lines" class="btn-primary"/>
-                    </footer>
                     <field name="line_ids" >
                         <list editable="bottom">
+                            <field name="product_tmpl_id"/>
                             <field name="warehouse_code"/>
                             <field name="product_profile"/>
                             <field name="color"/>
+                            <field name="profile_length" readonly="1"/>
                             <field name="total_length"/>
-                            <field name="profile_length"/>
                             <field name="width"/>
                             <field name="available_qty"/>
                             <field name="max_qty_needed"/>
@@ -60,6 +64,13 @@
                         </list>
                     </field>
                 </sheet>
+
+                    <!-- 2. PLACE THE CHATTER PANEL HERE (Outside <sheet>, inside <form>) -->
+                    <chatter>
+                        <field name="message_follower_ids"/>
+                        <field name="activity_ids"/>
+                        <field name="message_ids"/>
+                    </chatter>                
             </form>
         </field>
     </record>
@@ -70,6 +81,7 @@
     </record>
     <record id="action_cutlist_sum_form" model="ir.actions.act_window">
         <field name="name">Cut List Summaries Form</field>
+        <field name="context">{'default_ajo_order_id': active_id}</field>
         <field name="res_model">cutlist_sum</field>
         <field name="view_mode">form</field>
     </record>
@@ -78,5 +90,5 @@
         name="Cut List Summary"
         parent="menu_ajo"
         action="action_cutlist_sum"
-        sequence="20"/>
+        sequence="13"/>
 </odoo>

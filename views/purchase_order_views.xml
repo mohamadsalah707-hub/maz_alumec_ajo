@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+<!--    Sale order form view inherited for adding warehouse field-->
+	<record id="purchase_order_form_inherit" model="ir.ui.view">
+		<field name="name">purchase.order.form.inherit</field>
+		<field name="model">purchase.order</field>
+		<field name="inherit_id" ref="purchase.purchase_order_form"/>
+		<field name="arch" type="xml">
+			<xpath expr="//field[@name='order_line']/list/field[@name='product_qty']" position="before">
+				<field name="width"/>
+				<field name="total_length" string="Height"/>
+				<field name="area" string="Area/m²"/>
+				<field name="color"/>
+			</xpath>
+		</field>
+	</record>
+    <record id="purchase_order_list_inherit_iso_checklist" model="ir.ui.view">
+        <field name="name">purchase.order.list.inherit.iso.checklist</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_kpis_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='state']" position="after">
+                <button name="action_open_iso_checklist" type="object" string="ISO Checklist" icon="fa-list-check" class="oe_highlight"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

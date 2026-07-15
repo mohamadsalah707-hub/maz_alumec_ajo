@@ -6,3 +6,6 @@ access_color,color,model_product_color,base.group_user,1,1,1,1
 access_alum_profile,alum.profile,model_alum_profile,base.group_user,1,1,1,1
 access_cutlist_sum,cutlist.sum,model_cutlist_sum,base.group_user,1,1,1,1
 access_cutlist_sum_lines,cutlist.sum.lines,model_cutlist_sum_lines,base.group_user,1,1,1,1
+access_product_label_layout,product.label.layout,model_maz_alumec_ajo_product_label_layout,base.group_user,1,1,1,1
+access_cutliststage,cutliststage,model_cutliststage,base.group_user,1,1,1,1
+access_purchase_order_line_checklist,purchase.order.line.checklist,model_purchase_order_line_checklist,base.group_user,1,1,1,1
