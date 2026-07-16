@@ -36,6 +36,11 @@
         <field name="arch" type="xml">
             <form string="AJO Order">
                 <header>
+                    <button name="action_generate_manufacturing"
+                            type="object"
+                            string="Generate Manufacturing Order"
+                            class="oe_highlight"
+                            icon="fa-industry"/>
                     <button name="action_mopen_label_layout"
                             type="object"
                             string="Print Barcodes"

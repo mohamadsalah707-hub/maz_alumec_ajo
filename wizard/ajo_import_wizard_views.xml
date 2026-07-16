@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_ajo_import_wizard_form" model="ir.ui.view">
+        <field name="name">ajo.import.wizard.form</field>
+        <field name="model">ajo.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import AJO Manufacturing Form">
+                <div class="alert alert-info" role="alert">
+                    Accepts either the AJO "Manufacturing Form" Excel export (.xlsx) or a
+                    TechDesign 9.0 "Fiche de fabrication" export (.txt).
+                </div>
+                <group>
+                    <field name="warehouse_id" options="{'no_create': True}"/>
+                    <field name="filename" invisible="1"/>
+                    <field name="file" filename="filename"/>
+                </group>
+                <group string="Import Log" invisible="not log">
+                    <field name="log" nolabel="1" readonly="1"/>
+                </group>
+                <footer>
+                    <button name="action_import" string="Import" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ajo_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import Manufacturing Form</field>
+        <field name="res_model">ajo.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem
+        id="menu_ajo_import_wizard"
+        name="Import Manufacturing Form"
+        parent="menu_ajo"
+        action="action_ajo_import_wizard"
+        sequence="11"/>
+</odoo>

@@ -9,11 +9,12 @@
     'company': 'MAZ',
     'maintainer': 'MAZ',
     'website': "https://www.maz.com",
-    'depends': ['base', 'mail', 'crm', 'sale_management', 'account', 'stock','purchase','sales_team','sale_stock'],
+    'depends': ['base', 'mail', 'crm', 'sale_management', 'account', 'stock','purchase','sales_team','sale_stock','mrp'],
     'data': [
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
         'wizard/product_label_layout_views.xml',
+        'wizard/ajo_import_wizard_views.xml',
         'views/product_views.xml',
         'views/purchase_order_views.xml',
         'views/ajo_order_views.xml',
@@ -24,6 +25,9 @@
         'data/cutlist_stage_data.xml',
         #'views/main_menu_color.xml'
     ],
+    'external_dependencies': {
+        'python': ['openpyxl'],
+    },
     'images': ['static/description/alumec.png'],
     'license': 'AGPL-3',
     'installable': True,

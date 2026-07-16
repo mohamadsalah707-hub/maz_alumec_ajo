@@ -1,4 +1,5 @@
 from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 import logging
 _logger = logging.getLogger("MAZ")
 
@@ -126,6 +127,69 @@ class AjoOrder(models.Model):
                 'default_material_type': material_type,
             },
         }
+
+    def action_generate_manufacturing(self):
+        self.ensure_one()
+        Production = self.env['mrp.production']
+        Bom = self.env['mrp.bom']
+
+        lines_by_item = {}
+        for line in self.order_line_ids:
+            if not line.item_ref:
+                continue
+            lines_by_item.setdefault(line.item_ref, self.env['ajo_order_line'])
+            lines_by_item[line.item_ref] |= line
+
+        if not lines_by_item:
+            raise UserError(_('No order lines with an Item Ref (finished good) to manufacture.'))
+
+        productions = Production
+        for item_product, lines in lines_by_item.items():
+            existing = Production.search([
+                ('origin', '=', self.name),
+                ('product_id', '=', item_product.id),
+            ], limit=1)
+            if existing:
+                productions |= existing
+                continue
+
+            bom = Bom.create({
+                'product_tmpl_id': item_product.product_tmpl_id.id,
+                'product_id': item_product.id,
+                'product_qty': 1.0,
+                'product_uom_id': item_product.uom_id.id,
+                'code': self.name,
+                'company_id': self.company_id.id,
+                'bom_line_ids': [(0, 0, {
+                    'product_id': line.product_id.id,
+                    'product_qty': line.qty or 0.0,
+                    'product_uom_id': line.product_uom_id.id,
+                }) for line in lines],
+            })
+
+            production = Production.create({
+                'product_id': item_product.id,
+                'product_qty': 1.0,
+                'product_uom_id': item_product.uom_id.id,
+                'bom_id': bom.id,
+                'origin': self.name,
+                'company_id': self.company_id.id,
+            })
+            productions |= production
+
+        self.message_post(body=_('Generated %s Manufacturing Order(s).') % len(productions))
+
+        action = {
+            'name': _('Manufacturing Orders'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.production',
+            'context': self.env.context,
+        }
+        if len(productions) == 1:
+            action.update({'view_mode': 'form', 'res_id': productions.id})
+        else:
+            action.update({'view_mode': 'list,form', 'domain': [('id', 'in', productions.ids)]})
+        return action
 
     def action_open_cutlist_sum(self):
         return self._open_cutlist_sum_for_material('aluminum')
