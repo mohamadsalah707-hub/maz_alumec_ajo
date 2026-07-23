@@ -9,15 +9,18 @@
             <xpath expr="//notebook" position="inside">
                 <page string="Aluminium Specs" name="alum_specs">
                     <!-- Fixed 'cols' typo to 'col' -->
-                    <group col="4"> 
+                    <group col="4">
                         <group string="Primary Info">
                             <field name="material_type"/>
                             <field name="alum_profile"/>
                             <field name="color_id"/>
+                            <field name="categ_id"/>
+                            <field name="sub_categ_id" options="{'no_create': True}"/>
                         </group>
                         <group string="Dimensions">
-                            <!--field name="width"/-->
                             <field name="length"/>
+                            <field name="width"/>
+                            <field name="weight"/>
                         </group>
                     </group>
                 </page>
@@ -38,6 +41,8 @@
                 <field name="alum_profile" optional="show"/>
                 <field name="color_id" optional="show"/>
                 <field name="length" optional="show"/>
+                <field name="width" optional="hide"/>
+                <field name="sub_categ_id" optional="hide"/>
             </xpath>
         </field>
     </record>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <record id="seq_ajo_offcut_lot" model="ir.sequence">
+        <field name="name">AJO Aluminum Offcut Lot</field>
+        <field name="code">ajo.offcut.lot</field>
+        <field name="prefix">OFFCUT/%(year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

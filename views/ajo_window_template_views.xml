@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_ajo_window_template_list" model="ir.ui.view">
+        <field name="name">ajo.window.template.list</field>
+        <field name="model">ajo_window_template</field>
+        <field name="arch" type="xml">
+            <list string="Window Templates">
+                <field name="name"/>
+                <field name="profile_brand"/>
+                <field name="profile_length"/>
+                <field name="handle_height_default"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ajo_window_template_form" model="ir.ui.view">
+        <field name="name">ajo.window.template.form</field>
+        <field name="model">ajo_window_template</field>
+        <field name="arch" type="xml">
+            <form string="Window Template">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. TECHNAL FXI Fixed Window"/></h1>
+                    </div>
+                    <group>
+                        <field name="profile_brand"/>
+                        <field name="profile_length"/>
+                        <field name="handle_height_default"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Cut List Lines" name="lines">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="material_type"/>
+                                    <field name="profile_code"/>
+                                    <field name="profile_brand_override"/>
+                                    <field name="profile_length_override"/>
+                                    <field name="unit"/>
+                                    <field name="angle"/>
+                                    <field name="length_coef_l"/>
+                                    <field name="length_coef_h"/>
+                                    <field name="length_const"/>
+                                    <field name="width_coef_l"/>
+                                    <field name="width_coef_h"/>
+                                    <field name="width_const"/>
+                                    <field name="qty_mode"/>
+                                    <field name="qty_multiplier"/>
+                                    <field name="qty_perimeter_factor"/>
+                                    <field name="condition_flag_id"/>
+                                    <field name="condition_value"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Options / Flags" name="flags">
+                            <field name="flag_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="default_value"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ajo_window_template" model="ir.actions.act_window">
+        <field name="name">Window Templates</field>
+        <field name="res_model">ajo_window_template</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

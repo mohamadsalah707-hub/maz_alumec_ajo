@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <!--
+        Reproduces "Manufacturing Form.xlsx" / Sheet "1 LSHW- FXI-F1" exactly:
+        every cut-list line's formula (in terms of L, H, window Qty and a few
+        yes/no options) was read straight from that sheet's cell formulas.
+        This is a starting point users can freely edit/extend from the
+        Window Templates screen; it will not be overwritten by module updates.
+    -->
+
+    <record id="ajo_window_template_technal_fxi_fixed" model="ajo_window_template">
+        <field name="name">TECHNAL FXI - Fixed Window</field>
+        <field name="profile_brand">TECHNAL FXI</field>
+        <field name="handle_height_default">500</field>
+    </record>
+
+    <record id="ajo_window_flag_align_8402" model="ajo_window_template_flag">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">10</field>
+        <field name="name">Align 8402/8400 profiles at Right</field>
+        <field name="default_value" eval="True"/>
+    </record>
+    <record id="ajo_window_flag_use_2010" model="ajo_window_template_flag">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">20</field>
+        <field name="name">Include 2010 profile</field>
+        <field name="default_value" eval="False"/>
+    </record>
+    <record id="ajo_window_flag_compas_securite" model="ajo_window_template_flag">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">30</field>
+        <field name="name">Include Compas de Securite (KF045)</field>
+        <field name="default_value" eval="False"/>
+    </record>
+
+    <!-- Aluminum profiles -->
+    <record id="ajo_window_template_line_technal_fxi_10" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">10</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">HF008</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="length_coef_l" eval="1.0"/>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_20" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">20</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">HF008</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="length_coef_h" eval="1.0"/>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_30" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">30</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">HF001</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="length_coef_l" eval="1.0"/>
+        <field name="length_const" eval="-54.0"/>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_40" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">40</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">HF001</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="length_coef_h" eval="1.0"/>
+        <field name="length_const" eval="-54.0"/>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_50" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">50</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">8402</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="length_coef_l" eval="1.0"/>
+        <field name="length_const" eval="82.0"/>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_60" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">60</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">8402</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="length_coef_l" eval="1.0"/>
+        <field name="length_const" eval="82.0"/>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_70" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">70</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">8402</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="length_coef_h" eval="1.0"/>
+        <field name="length_const" eval="82.0"/>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_80" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">80</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">8400</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="length_coef_h" eval="1.0"/>
+        <field name="length_const" eval="52.0"/>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_90" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">90</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">2271</field>
+        <field name="profile_brand_override">PARCLOSE</field>
+        <field name="unit">mm</field>
+        <field name="angle">0.0/ 0.0</field>
+        <field name="length_coef_l" eval="1.0"/>
+        <field name="length_const" eval="-144.0"/>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_100" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">100</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">2271</field>
+        <field name="profile_brand_override">PARCLOSE</field>
+        <field name="unit">mm</field>
+        <field name="angle">0.0/ 0.0</field>
+        <field name="condition_flag_id" ref="ajo_window_flag_align_8402"/>
+        <field name="condition_value" eval="True"/>
+        <field name="length_coef_h" eval="1.0"/>
+        <field name="length_const" eval="-190.0"/>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_101" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">101</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">2271</field>
+        <field name="profile_brand_override">PARCLOSE</field>
+        <field name="unit">mm</field>
+        <field name="angle">0.0/ 0.0</field>
+        <field name="condition_flag_id" ref="ajo_window_flag_align_8402"/>
+        <field name="condition_value" eval="False"/>
+        <field name="length_coef_h" eval="1.0"/>
+        <field name="length_const" eval="-144.0"/>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_110" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">110</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">2010</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="condition_flag_id" ref="ajo_window_flag_use_2010"/>
+        <field name="condition_value" eval="True"/>
+        <field name="length_coef_l" eval="1.0"/>
+        <field name="length_const" eval="-22.0"/>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_120" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">120</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">2010</field>
+        <field name="unit">mm</field>
+        <field name="angle">-45.0/ 45.0</field>
+        <field name="condition_flag_id" ref="ajo_window_flag_use_2010"/>
+        <field name="condition_value" eval="True"/>
+        <field name="length_coef_h" eval="1.0"/>
+        <field name="length_const" eval="-22.0"/>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_130" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">130</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">8015</field>
+        <field name="unit">mm</field>
+        <field name="angle">0.0/ 0.0</field>
+        <field name="length_coef_l" eval="1.0"/>
+        <field name="qty_mode">manual</field>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_140" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">140</field>
+        <field name="material_type">aluminum</field>
+        <field name="profile_code">8015</field>
+        <field name="unit">mm</field>
+        <field name="angle">0.0/ 0.0</field>
+        <field name="length_coef_h" eval="1.0"/>
+        <field name="qty_mode">manual</field>
+    </record>
+
+    <!-- Accessories -->
+    <record id="ajo_window_template_line_technal_fxi_200" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">200</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">EE001</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="8.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_210" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">210</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">CF005</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="4.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_220" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">220</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">CF018</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_230" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">230</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">CF023</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="8.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_240" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">240</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">KF012</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_250" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">250</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">KF037</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_260" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">260</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">CF019</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_270" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">270</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">CF013</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_280" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">280</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">KF030</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_290" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">290</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">JF001</field>
+        <field name="unit">mm</field>
+        <field name="qty_mode">perimeter</field>
+        <field name="qty_perimeter_factor" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_300" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">300</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">JF002</field>
+        <field name="unit">mm</field>
+        <field name="qty_mode">perimeter</field>
+        <field name="qty_perimeter_factor" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_310" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">310</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">JF005</field>
+        <field name="unit">mm</field>
+        <field name="qty_mode">perimeter</field>
+        <field name="qty_perimeter_factor" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_320" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">320</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">1472</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="2.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_330" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">330</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">KF045</field>
+        <field name="profile_brand_override">Compas Securite</field>
+        <field name="unit">pcs</field>
+        <field name="condition_flag_id" ref="ajo_window_flag_compas_securite"/>
+        <field name="condition_value" eval="True"/>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_340" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">340</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">1112</field>
+        <field name="unit">pcs</field>
+        <field name="qty_mode">manual</field>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_350" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">350</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">2649</field>
+        <field name="unit">pcs</field>
+        <field name="qty_mode">manual</field>
+    </record>
+    <record id="ajo_window_template_line_technal_fxi_360" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">360</field>
+        <field name="material_type">accessory</field>
+        <field name="profile_code">EE012</field>
+        <field name="unit">pcs</field>
+        <field name="qty_multiplier" eval="4.0"/>
+    </record>
+
+    <!-- Glass: profile_code left empty -> uses the window's own Glass Type (e.g. G1) -->
+    <record id="ajo_window_template_line_technal_fxi_400" model="ajo_window_template_line">
+        <field name="template_id" ref="ajo_window_template_technal_fxi_fixed"/>
+        <field name="sequence">400</field>
+        <field name="material_type">glass</field>
+        <field name="color_override">NC</field>
+        <field name="unit">mm</field>
+        <field name="length_coef_h" eval="1.0"/>
+        <field name="length_const" eval="-162.0"/>
+        <field name="width_coef_l" eval="1.0"/>
+        <field name="width_const" eval="-162.0"/>
+        <field name="qty_multiplier" eval="1.0"/>
+    </record>
+</odoo>

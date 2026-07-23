@@ -8,6 +8,8 @@
                 <div class="alert alert-info" role="alert">
                     Accepts either the AJO "Manufacturing Form" Excel export (.xlsx) or a
                     TechDesign 9.0 "Fiche de fabrication" export (.txt).
+                    <br/>
+                    Unit is always "mm" for every material type except Accessories.
                 </div>
                 <group>
                     <field name="warehouse_id" options="{'no_create': True}"/>

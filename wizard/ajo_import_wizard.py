@@ -57,6 +57,19 @@ TD_SECTION_COLUMNS = {
 }
 TD_SECTION_HEADERS = set(TD_SECTION_COLUMNS) | {'Job:'}
 
+# Maps the literal unit text found in the source file to the matching Odoo
+# uom.uom external id, so imported lines carry the same unit as the source
+# document instead of silently inheriting whatever uom the product defaults to.
+UOM_XMLID_MAP = {
+    'mm': 'uom.product_uom_millimeter',
+    'cm': 'uom.product_uom_cm',
+    'm': 'uom.product_uom_meter',
+    'pcs': 'uom.product_uom_unit',
+    'pc': 'uom.product_uom_unit',
+    'unit': 'uom.product_uom_unit',
+    'units': 'uom.product_uom_unit',
+}
+
 
 def _td_num(value):
     """Best-effort float parse of a TechDesign numeric cell (handles thousands separators)."""
@@ -75,8 +88,10 @@ class AjoImportWizard(models.TransientModel):
     file = fields.Binary(string='Manufacturing Form (.xlsx or TechDesign .txt)', required=True)
     filename = fields.Char(string='Filename')
     warehouse_id = fields.Many2one(
-        'stock.warehouse', string='Warehouse', required=True,
-        help='Destination warehouse applied to every AJO order created by this import.',
+        'stock.warehouse', string='Warehouse Override',
+        help='Optional. Leave empty to auto-create/reuse one warehouse per project '
+             '(matched by Project Code). Set this to force every AJO order created '
+             'by this import onto the same warehouse instead.',
     )
     log = fields.Text(string='Import Log', readonly=True)
 
@@ -84,9 +99,16 @@ class AjoImportWizard(models.TransientModel):
         self.ensure_one()
         content = base64.b64decode(self.file)
         messages = []
+        # Tracks AJO Orders created/reused earlier in *this* run, so multiple
+        # window blocks for the same AJO number (normal within one file) keep
+        # accumulating lines, while an AJO number that already existed before
+        # this run started (a re-import of the same file) is skipped instead
+        # of piling up duplicate lines. Threaded through as a plain argument
+        # (not stored on self) since recordsets don't allow ad-hoc attributes.
+        import_state = {'touched_order_ids': set(), 'skipped_order_names': []}
 
         if (self.filename or '').lower().endswith('.txt'):
-            orders = self._import_techdesign_content(content, messages)
+            orders = self._import_techdesign_content(content, messages, import_state)
         else:
             if not openpyxl:
                 raise UserError(_('The "openpyxl" python library is required to import Excel files.'))
@@ -94,7 +116,7 @@ class AjoImportWizard(models.TransientModel):
                 workbook = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
             except Exception as exc:
                 raise UserError(_('Could not read the uploaded file as an Excel workbook: %s') % exc)
-            orders = self._import_sheet(workbook.worksheets[0], messages)
+            orders = self._import_sheet(workbook.worksheets[0], messages, import_state)
 
         if not orders:
             raise UserError(_('No AJO window blocks were found in this file.'))
@@ -108,9 +130,33 @@ class AjoImportWizard(models.TransientModel):
             'context': self.env.context,
         }
         if len(orders) == 1:
-            action.update({'view_mode': 'form', 'res_id': orders[0].id})
+            action.update({
+                'view_mode': 'form',
+                'views': [(False, 'form')],
+                'res_id': orders[0].id,
+            })
         else:
-            action.update({'view_mode': 'list,form', 'domain': [('id', 'in', orders.ids)]})
+            action.update({
+                'view_mode': 'list,form',
+                'views': [(False, 'list'), (False, 'form')],
+                'domain': [('id', 'in', orders.ids)],
+            })
+
+        if import_state['skipped_order_names']:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('AJO Order(s) already imported'),
+                    'message': _(
+                        'These AJO numbers already existed and were NOT re-imported '
+                        '(no duplicate lines were created): %s'
+                    ) % ', '.join(sorted(set(import_state['skipped_order_names']))),
+                    'type': 'warning',
+                    'sticky': True,
+                    'next': action,
+                },
+            }
         return action
 
     # ------------------------------------------------------------------
@@ -118,10 +164,15 @@ class AjoImportWizard(models.TransientModel):
     # ------------------------------------------------------------------
 
     def _get_or_create_order(self, ajo_name, project_ref, project_code, pm_name,
-                              date_value, block_value, floor_value, messages):
+                              date_value, block_value, floor_value, messages, import_state):
+        """Returns (order, importable). `importable` is False only when an AJO
+        Order with this name already existed BEFORE this import run started
+        (i.e. a re-import of an already-imported file) - callers must then
+        skip its lines to avoid duplicates. Multiple blocks for the same AJO
+        number within one run/file keep accumulating normally."""
         order = self.env['ajo_order'].search([('name', '=', ajo_name)], limit=1)
         if order:
-            return order
+            return order, order.id in import_state['touched_order_ids']
 
         pm_user = self.env['res.users']
         if pm_name:
@@ -134,18 +185,22 @@ class AjoImportWizard(models.TransientModel):
             'project_ref': project_ref or ajo_name,
             'project_code': project_code or '',
             'pm_id': pm_user.id if pm_user else self.env.user.id,
-            'warehouse_id': self.warehouse_id.id,
             'block': str(block_value) if block_value not in (None, '') else '',
             'floor': str(floor_value) if floor_value not in (None, '') else '',
         }
+        # Leave 'warehouse_id' unset unless explicitly overridden: ajo_order.create()
+        # auto-creates/reuses one warehouse per project (by Project Code).
+        if self.warehouse_id:
+            vals['warehouse_id'] = self.warehouse_id.id
         if hasattr(date_value, 'date'):
             vals['date'] = date_value.date()
         elif date_value:
             vals['date'] = date_value
 
         order = self.env['ajo_order'].create(vals)
+        import_state['touched_order_ids'].add(order.id)
         messages.append(_('Created AJO Order %s.') % ajo_name)
-        return order
+        return order, True
 
     def _get_or_create_window_product(self, window_no, project_ref, messages, extra_label=''):
         if not window_no:
@@ -200,16 +255,20 @@ class AjoImportWizard(models.TransientModel):
         if template:
             return template.product_variant_id
 
-        name_parts = [profile_code]
-        if color:
-            name_parts.append(color.name)
-        template = self.env['product.template'].create({
-            'name': ' - '.join(name_parts),
+        vals = {
+            # 'name' is left unset: product.template._compute_name derives it
+            # from alum_profile + color_id (+ length, in mm, for aluminum).
             'alum_profile': alum_profile.id,
             'color_id': color.id if color else False,
             'material_type': material_type,
             'type': 'consu',
-        })
+        }
+        if material_type == 'aluminum':
+            # Lot tracking is required for the offcut/waste workflow: each
+            # reusable leftover piece is stored as its own lot carrying its
+            # exact length (see models/mrp_offcut.py).
+            vals['tracking'] = 'lot'
+        template = self.env['product.template'].create(vals)
         messages.append(_('Created material product %s.') % template.name)
         return template.product_variant_id
 
@@ -221,9 +280,21 @@ class AjoImportWizard(models.TransientModel):
             angle = self.env['angle'].create({'name': str(angle_label)})
         return angle
 
-    def _create_order_line(self, order, item_product, product, height, qty, angle_label, width=0.0):
+    def _get_uom(self, unit_label):
+        """Resolve the literal unit text from the source file to a uom.uom
+        record, so the imported line keeps the same unit as the document
+        instead of inheriting whatever uom the product happens to default to."""
+        key = str(unit_label).strip().lower() if unit_label else ''
+        xmlid = UOM_XMLID_MAP.get(key, 'uom.product_uom_unit')
+        return (
+            self.env.ref(xmlid, raise_if_not_found=False)
+            or self.env.ref('uom.product_uom_unit')
+        )
+
+    def _create_order_line(self, order, item_product, product, height, qty, angle_label,
+                            width=0.0, uom=None):
         angle = self._get_or_create_angle(angle_label)
-        self.env['ajo_order_line'].create({
+        vals = {
             'order_id': order.id,
             'item_ref': item_product.id if item_product else False,
             'product_id': product.id,
@@ -231,19 +302,22 @@ class AjoImportWizard(models.TransientModel):
             'height': height,
             'qty': qty,
             'angle': angle.id if angle else False,
-        })
+        }
+        if uom:
+            vals['product_uom_id'] = uom.id
+        self.env['ajo_order_line'].create(vals)
 
     # ------------------------------------------------------------------
     # Excel "Manufacturing Form" parsing
     # ------------------------------------------------------------------
 
-    def _import_sheet(self, sheet, messages):
+    def _import_sheet(self, sheet, messages, import_state):
         orders = self.env['ajo_order']
         row = 1
         max_row = sheet.max_row
         while row <= max_row:
             if sheet.cell(row=row, column=1).value == 'ALUMEC':
-                order, next_row = self._import_block(sheet, row, messages)
+                order, next_row = self._import_block(sheet, row, messages, import_state)
                 if order:
                     orders |= order
                 row = next_row
@@ -251,7 +325,7 @@ class AjoImportWizard(models.TransientModel):
                 row += 1
         return orders
 
-    def _import_block(self, sheet, start_row, messages):
+    def _import_block(self, sheet, start_row, messages, import_state):
         """Parse one window block starting at `start_row` (the 'ALUMEC' row).
         Returns (ajo_order record, row where the next block may start)."""
         get = lambda r, c: sheet.cell(row=r, column=c).value
@@ -269,10 +343,17 @@ class AjoImportWizard(models.TransientModel):
         block_value = get(start_row + 12, 5)
         floor_value = get(start_row + 13, 5)
 
-        order = self._get_or_create_order(
+        order, importable = self._get_or_create_order(
             ajo_name, project_ref, project_code, pm_name,
-            date_value, block_value, floor_value, messages,
+            date_value, block_value, floor_value, messages, import_state,
         )
+        if not importable:
+            import_state['skipped_order_names'].append(ajo_name)
+            messages.append(_(
+                'AJO Order %s already exists - this window block was NOT re-imported '
+                '(no duplicate lines were created).'
+            ) % ajo_name)
+            return order, start_row + 1
 
         item_product = self._get_or_create_window_product(window_no, project_ref, messages)
 
@@ -305,6 +386,7 @@ class AjoImportWizard(models.TransientModel):
         length_value = get(COL['length'])
         qty_value = get(COL['qty']) or 0
         angle_label = get(COL['angle'])
+        unit_value = get(COL['unit'])
 
         product = self._get_or_create_material_product(
             material_type, profile_code, color_code, profile_brand, messages,
@@ -316,7 +398,11 @@ class AjoImportWizard(models.TransientModel):
             height = 0.0
             messages.append(_('Row %s: non-numeric length "%s", set to 0.') % (row, length_value))
 
-        self._create_order_line(order, item_product, product, height, qty_value, angle_label)
+        # Unit is only ever meaningfully variable for Accessories (pcs vs a
+        # total length in mm); every other material type is a measurement in
+        # mm regardless of what the sheet's Unit column literally says.
+        uom = self._get_uom(unit_value) if material_type == 'accessory' else self._get_uom('mm')
+        self._create_order_line(order, item_product, product, height, qty_value, angle_label, uom=uom)
 
     # ------------------------------------------------------------------
     # TechDesign 9.0 "Fiche de fabrication" text export parsing
@@ -330,7 +416,7 @@ class AjoImportWizard(models.TransientModel):
                 continue
         return content.decode('utf-8', errors='ignore')
 
-    def _import_techdesign_content(self, content, messages):
+    def _import_techdesign_content(self, content, messages, import_state):
         text = self._decode_techdesign_text(content)
         lines = [line.strip('\r\n') for line in text.split('\n')]
         n = len(lines)
@@ -339,7 +425,7 @@ class AjoImportWizard(models.TransientModel):
         orders = self.env['ajo_order']
         for i, start in enumerate(job_starts):
             end = job_starts[i + 1] if i + 1 < len(job_starts) else n
-            order = self._import_techdesign_block(lines, start, end, messages)
+            order = self._import_techdesign_block(lines, start, end, messages, import_state)
             if order:
                 orders |= order
         return orders
@@ -364,7 +450,7 @@ class AjoImportWizard(models.TransientModel):
                 return lines[j].strip() if j < end else None
         return None
 
-    def _import_techdesign_block(self, lines, start, end, messages):
+    def _import_techdesign_block(self, lines, start, end, messages, import_state):
         job_name = self._td_value_after(lines, 'Job:', start, end)
         item_code = self._td_value_after(lines, 'Item n°:', start, end)
         job_no = self._td_value_after(lines, 'Job n°:', start, end)
@@ -376,7 +462,7 @@ class AjoImportWizard(models.TransientModel):
 
         # The 'Job:' text is the one field that repeats identically across
         # every block in the file, so it is used as the AJO grouping key.
-        order = self._get_or_create_order(
+        order, importable = self._get_or_create_order(
             ajo_name=job_name,
             project_ref=job_name,
             project_code=job_no or '',
@@ -385,7 +471,15 @@ class AjoImportWizard(models.TransientModel):
             block_value='',
             floor_value='',
             messages=messages,
+            import_state=import_state,
         )
+        if not importable:
+            import_state['skipped_order_names'].append(job_name)
+            messages.append(_(
+                'AJO Order %s already exists - this block was NOT re-imported '
+                '(no duplicate lines were created).'
+            ) % job_name)
+            return order
 
         item_product = self._get_or_create_window_product(
             item_code, job_name, messages, extra_label=item_code and job_no or '',
@@ -455,4 +549,8 @@ class AjoImportWizard(models.TransientModel):
         product = self._get_or_create_material_product(
             material_type, profile_code, color_code, profile_brand, messages,
         )
-        self._create_order_line(order, item_product, product, height, qty, angle_label, width=width)
+        # TechDesign has no per-row Unit column: Accessories are counted in
+        # pieces ("pcs"), everything else (profiles, glass, ...) is a
+        # measurement in "mm".
+        uom = self._get_uom('pcs' if material_type == 'accessory' else 'mm')
+        self._create_order_line(order, item_product, product, height, qty, angle_label, width=width, uom=uom)

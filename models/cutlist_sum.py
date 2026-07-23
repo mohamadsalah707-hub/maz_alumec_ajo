@@ -1,4 +1,4 @@
-from odoo import models, fields, api, Command
+from odoo import _, models, fields, api, Command
 from odoo.tools import float_compare
 from datetime import datetime
 from math import ceil
@@ -113,9 +113,11 @@ class CutlistSum(models.Model):
         if self.material_type:
             lines = lines.filtered(lambda l: l.material_type == self.material_type)
         sumlines = {}
+        alu_type_map = {}
         for line in lines:
             tmpl_id = line.product_tmpl_id
-            alu_type = line.material_type in ['aluminum'] 
+            alu_type = line.material_type in ['aluminum']
+            alu_type_map[tmpl_id.id] = alu_type
             product = self.env['product.product'].search([('product_tmpl_id', '=', tmpl_id.id)], limit=1)
             available_qty = 0.0
             if product and order.warehouse_id:
@@ -141,21 +143,42 @@ class CutlistSum(models.Model):
                     'increase_percent': 0,
                 }
         commands = [Command.clear()]
+        missing_length_profiles = []
         for tmpl_id, entry in sumlines.items():
-            # Fixed math calculations (using safe entry variables)
-            max_qty = ceil(entry['total_length'] * 1.25 / entry['profile_length'] if alu_type else entry['qty']) - entry['available_qty']
-            min_qty = ceil(entry['total_length'] / entry['profile_length'] if alu_type else entry['qty']) - entry['available_qty']
-            
+            # Each entry keeps the material type of the line(s) it was built
+            # from (not the last line seen across the whole loop above).
+            alu_type = alu_type_map.get(tmpl_id, False)
+            profile_length = entry['profile_length']
+
+            if alu_type and not profile_length:
+                # Profile Length (the stock bar length) isn't set on this
+                # product yet - qty-to-order can't be computed without it.
+                missing_length_profiles.append(entry['product_profile'])
+                max_qty = 0
+                min_qty = 0
+            else:
+                max_qty = ceil(entry['total_length'] * 1.25 / profile_length if alu_type else entry['qty']) - entry['available_qty']
+                min_qty = ceil(entry['total_length'] / profile_length if alu_type else entry['qty']) - entry['available_qty']
+
             # Map values safely back into dictionary values
             entry['max_qty_needed'] = max_qty
             entry['min_qty_needed'] = min_qty
             entry['qtytoorder'] = min_qty
-            
+
             commands.append(Command.create(entry))
 
         # Fixed: Direct field assignment instead of self.write()
         self.line_ids = commands
         _logger.info(f"Generated {self.line_ids} ")
+
+        if missing_length_profiles:
+            return {'warning': {
+                'title': _('Profile Length not set'),
+                'message': _(
+                    'These products have no Profile Length (stock bar length) set, '
+                    'so their Qty to Order could not be computed and was left at 0: %s'
+                ) % ', '.join(sorted(set(missing_length_profiles))),
+            }}
 
 
 #create request for quotation

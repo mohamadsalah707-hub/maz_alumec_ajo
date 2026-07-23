@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_ajo_order_window_list" model="ir.ui.view">
+        <field name="name">ajo.order.window.list</field>
+        <field name="model">ajo_order_window</field>
+        <field name="arch" type="xml">
+            <list string="Production Templates">
+                <field name="order_ref"/>
+                <field name="order_id"/>
+                <field name="project_ref" optional="show"/>
+                <field name="project_code" optional="show"/>
+                <field name="block" optional="hide"/>
+                <field name="floor" optional="hide"/>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="template_id"/>
+                <field name="color_id"/>
+                <field name="length"/>
+                <field name="height"/>
+                <field name="qty"/>
+                <field name="glass_type_id"/>
+                <field name="glass_thickness_id"/>
+                <field name="generated_line_count" string="Lines"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ajo_order_window_form" model="ir.ui.view">
+        <field name="name">ajo.order.window.form</field>
+        <field name="model">ajo_order_window</field>
+        <field name="arch" type="xml">
+            <form string="Production Template">
+                <header>
+                    <button name="action_generate_lines"
+                            type="object"
+                            string="Generate Cut List Lines"
+                            class="oe_highlight"
+                            icon="fa-cogs"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. A1-W2"/></h1>
+                    </div>
+                    <group>
+                        <group string="AJO Order">
+                            <field name="order_ref"/>
+                            <field name="order_id" readonly="1"/>
+                            <field name="project_ref" readonly="order_id"/>
+                            <field name="project_code" readonly="order_id"/>
+                            <field name="block" readonly="order_id"/>
+                            <field name="floor" readonly="order_id"/>
+                        </group>
+                        <group string="Template &amp; Color">
+                            <field name="template_id"/>
+                            <field name="color_id"/>
+                            <field name="glass_type_id"/>
+                            <field name="glass_thickness_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Dimensions">
+                            <field name="length"/>
+                            <field name="height"/>
+                            <field name="qty"/>
+                            <field name="handle_height"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Options" name="options">
+                            <field name="flag_value_ids">
+                                <list editable="bottom" create="false" delete="false">
+                                    <field name="name" readonly="1"/>
+                                    <field name="value"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Generated Lines" name="generated_lines">
+                            <field name="generated_line_ids" readonly="1">
+                                <list>
+                                    <field name="item_ref"/>
+                                    <field name="product_id"/>
+                                    <field name="width"/>
+                                    <field name="height"/>
+                                    <field name="qty"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="angle"/>
+                                    <field name="length"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ajo_order_window" model="ir.actions.act_window">
+        <field name="name">Production Template</field>
+        <field name="res_model">ajo_order_window</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem
+        id="menu_ajo_order_window"
+        name="Production Template"
+        parent="menu_ajo"
+        action="action_ajo_order_window"
+        sequence="13"/>
+</odoo>

@@ -10,3 +10,11 @@ access_product_label_layout,product.label.layout,model_maz_alumec_ajo_product_la
 access_cutliststage,cutliststage,model_cutliststage,base.group_user,1,1,1,1
 access_purchase_order_line_checklist,purchase.order.line.checklist,model_purchase_order_line_checklist,base.group_user,1,1,1,1
 access_ajo_import_wizard,ajo.import.wizard,model_ajo_import_wizard,base.group_user,1,1,1,1
+access_product_sub_category,product.sub.category,model_product_sub_category,base.group_user,1,1,1,1
+access_ajo_window_template,ajo.window.template,model_ajo_window_template,base.group_user,1,1,1,1
+access_ajo_window_template_flag,ajo.window.template.flag,model_ajo_window_template_flag,base.group_user,1,1,1,1
+access_ajo_window_template_line,ajo.window.template.line,model_ajo_window_template_line,base.group_user,1,1,1,1
+access_ajo_order_window,ajo.order.window,model_ajo_order_window,base.group_user,1,1,1,1
+access_ajo_order_window_flag_value,ajo.order.window.flag.value,model_ajo_order_window_flag_value,base.group_user,1,1,1,1
+access_ajo_glass_type,ajo.glass.type,model_ajo_glass_type,base.group_user,1,1,1,1
+access_ajo_glass_thickness,ajo.glass.thickness,model_ajo_glass_thickness,base.group_user,1,1,1,1

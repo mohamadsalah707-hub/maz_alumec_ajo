@@ -29,10 +29,11 @@ class AjoOrder(models.Model):
 
     # New Native Warehouse Integration
     warehouse_id = fields.Many2one(
-        'stock.warehouse', 
-        string='Warehouse Name', 
+        'stock.warehouse',
+        string='Warehouse Name',
         required=True,
-        help="Select the project destination warehouse."
+        help="One warehouse is auto-created per project (name = Project Ref, "
+             "code derived from Project Code) the first time it is used here."
     )
     
     # Automatically fetches the short code from the selected warehouse
@@ -47,11 +48,16 @@ class AjoOrder(models.Model):
     
     # Link to the lines model
     order_line_ids = fields.One2many(
-        'ajo_order_line', 
-        'order_id', 
+        'ajo_order_line',
+        'order_id',
         string='Order Lines',
         tracking=True
     ) # Filtered fields for the two pages
+    window_ids = fields.One2many(
+        'ajo_order_window',
+        'order_id',
+        string='Windows / Doors',
+    )
     alum_order_line_ids = fields.One2many(
         'ajo_order_line', 
         'order_id', 
@@ -77,12 +83,91 @@ class AjoOrder(models.Model):
         domain=[('material_type', '=', 'acp')]
     )
     steel_order_line_ids = fields.One2many(
-        'ajo_order_line', 
-        'order_id', 
+        'ajo_order_line',
+        'order_id',
         string='Steel',
         domain=[('material_type', '=', 'steel')]
     )
-# to change this action for printing barcodes    
+
+    # ------------------------------------------------------------------
+    # One warehouse per project (matched by Project Code, falling back to
+    # Project Ref), auto-created the first time an order for that project
+    # is saved so users never have to set it up by hand.
+    # ------------------------------------------------------------------
+
+    @api.model
+    def _make_project_warehouse_code(self, seed):
+        base = ''.join(ch for ch in (seed or 'WH').upper() if ch.isalnum())[:5] or 'WH'
+        code = base
+        suffix = 1
+        Warehouse = self.env['stock.warehouse']
+        while Warehouse.search_count([('code', '=', code)]):
+            suffix_str = str(suffix)
+            code = base[:5 - len(suffix_str)] + suffix_str
+            suffix += 1
+        return code
+
+    @api.model
+    def _get_or_create_project_warehouse(self, project_ref, project_code, company_id=None):
+        Warehouse = self.env['stock.warehouse']
+        if project_code:
+            warehouse = Warehouse.search([('ajo_project_code', '=', project_code)], limit=1)
+        elif project_ref:
+            warehouse = Warehouse.search([('ajo_project_ref', '=', project_ref)], limit=1)
+        else:
+            return Warehouse
+        if warehouse:
+            return warehouse
+
+        name = project_ref or project_code
+        if not name:
+            return Warehouse
+
+        company_id = company_id or self.env.company.id
+        # A warehouse with this exact name may already exist (created by hand,
+        # or from before the project-tracking fields existed) - reuse it
+        # instead of trying to create a duplicate, which "name" being unique
+        # per company would reject anyway.
+        warehouse = Warehouse.search([
+            ('name', '=', name), ('company_id', '=', company_id),
+        ], limit=1)
+        if warehouse:
+            if not warehouse.ajo_project_ref and not warehouse.ajo_project_code:
+                warehouse.write({
+                    'ajo_project_ref': project_ref or '',
+                    'ajo_project_code': project_code or '',
+                })
+            return warehouse
+
+        code = self._make_project_warehouse_code(project_code or project_ref)
+        return Warehouse.create({
+            'name': name,
+            'code': code,
+            'ajo_project_ref': project_ref or '',
+            'ajo_project_code': project_code or '',
+            'company_id': company_id,
+        })
+
+    @api.onchange('project_ref', 'project_code')
+    def _onchange_project_warehouse(self):
+        if not self.warehouse_id and (self.project_ref or self.project_code):
+            self.warehouse_id = self._get_or_create_project_warehouse(
+                self.project_ref, self.project_code, company_id=self.company_id.id,
+            )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get('warehouse_id'):
+                warehouse = self._get_or_create_project_warehouse(
+                    vals.get('project_ref'), vals.get('project_code'),
+                    company_id=vals.get('company_id'),
+                )
+                if warehouse:
+                    vals['warehouse_id'] = warehouse.id
+        return super().create(vals_list)
+
+# to change this action for printing barcodes
     def action_mopen_label_layout(self):
         _logger.warning(' begin22 ')
         _logger.warning(self.order_line_ids.product_id.ids)
@@ -153,6 +238,19 @@ class AjoOrder(models.Model):
                 productions |= existing
                 continue
 
+            # One Byproduct line per unique aluminum profile among the
+            # components: this is what lets a Manufacturing Order receive
+            # back a reusable offcut of that same profile when the operator
+            # logs a Remaining Balance >= the scrap threshold (see
+            # mrp.production._ajo_process_offcuts in models/mrp_offcut.py).
+            # Its quantity is just a placeholder - the real quantity/lot is
+            # only ever set at MO-close time, since the exact leftover
+            # length can't be known from the BOM alone.
+            aluminum_products = {}
+            for line in lines:
+                if line.material_type == 'aluminum' and line.product_id:
+                    aluminum_products.setdefault(line.product_id.id, line.product_id)
+
             bom = Bom.create({
                 'product_tmpl_id': item_product.product_tmpl_id.id,
                 'product_id': item_product.id,
@@ -164,7 +262,14 @@ class AjoOrder(models.Model):
                     'product_id': line.product_id.id,
                     'product_qty': line.qty or 0.0,
                     'product_uom_id': line.product_uom_id.id,
+                    'width': line.width,
+                    'height': line.height,
                 }) for line in lines],
+                'byproduct_ids': [(0, 0, {
+                    'product_id': product.id,
+                    'product_qty': 1.0,
+                    'product_uom_id': product.uom_id.id,
+                }) for product in aluminum_products.values()],
             })
 
             production = Production.create({
@@ -239,7 +344,12 @@ class AjoOrderLine(models.Model):
     _check_company_auto = True
 
     order_id = fields.Many2one('ajo_order', string='Order Reference', ondelete='cascade', required=True)
-    
+    window_id = fields.Many2one(
+        'ajo_order_window', string='Window',
+        ondelete='set null',
+        help='Set when this line was auto-generated from a parametric Window/Door.',
+    )
+
     company_id = fields.Many2one(
         related='order_id.company_id',
         store=True, index=True, precompute=True)

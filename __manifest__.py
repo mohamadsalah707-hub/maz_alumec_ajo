@@ -17,12 +17,17 @@
         'wizard/ajo_import_wizard_views.xml',
         'views/product_views.xml',
         'views/purchase_order_views.xml',
+        'views/mrp_dimensions_views.xml',
+        'views/ajo_window_template_views.xml',
         'views/ajo_order_views.xml',
+        'views/ajo_order_window_views.xml',
         'views/cutlist_sum_views.xml',
         'views/purchase_iso_checklist_views.xml',
         'report/product_reports.xml',
         'report/product_template_templates.xml',
         'data/cutlist_stage_data.xml',
+        'data/ajo_window_template_technal_fxi_fixed.xml',
+        'data/ajo_offcut_sequence.xml',
         #'views/main_menu_color.xml'
     ],
     'external_dependencies': {
