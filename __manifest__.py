@@ -25,6 +25,7 @@
         'views/purchase_iso_checklist_views.xml',
         'report/product_reports.xml',
         'report/product_template_templates.xml',
+        'report/purchase_order_alu_report_templates.xml',
         'data/cutlist_stage_data.xml',
         'data/ajo_window_template_technal_fxi_fixed.xml',
         #'views/main_menu_color.xml'

@@ -11,6 +11,9 @@
 				<field name="total_length" string="Height"/>
 				<field name="area" string="Area/m²"/>
 				<field name="color"/>
+				<field name="profile_length" optional="show"/>
+				<field name="alu_weight_per_meter" optional="show"/>
+				<field name="alu_price_per_kg" optional="show"/>
 			</xpath>
 		</field>
 	</record>
