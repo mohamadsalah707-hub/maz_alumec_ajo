@@ -27,7 +27,6 @@
         'report/product_template_templates.xml',
         'data/cutlist_stage_data.xml',
         'data/ajo_window_template_technal_fxi_fixed.xml',
-        'data/ajo_offcut_sequence.xml',
         #'views/main_menu_color.xml'
     ],
     'external_dependencies': {

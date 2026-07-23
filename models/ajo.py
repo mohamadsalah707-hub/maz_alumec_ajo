@@ -238,19 +238,6 @@ class AjoOrder(models.Model):
                 productions |= existing
                 continue
 
-            # One Byproduct line per unique aluminum profile among the
-            # components: this is what lets a Manufacturing Order receive
-            # back a reusable offcut of that same profile when the operator
-            # logs a Remaining Balance >= the scrap threshold (see
-            # mrp.production._ajo_process_offcuts in models/mrp_offcut.py).
-            # Its quantity is just a placeholder - the real quantity/lot is
-            # only ever set at MO-close time, since the exact leftover
-            # length can't be known from the BOM alone.
-            aluminum_products = {}
-            for line in lines:
-                if line.material_type == 'aluminum' and line.product_id:
-                    aluminum_products.setdefault(line.product_id.id, line.product_id)
-
             bom = Bom.create({
                 'product_tmpl_id': item_product.product_tmpl_id.id,
                 'product_id': item_product.id,
@@ -265,11 +252,6 @@ class AjoOrder(models.Model):
                     'width': line.width,
                     'height': line.height,
                 }) for line in lines],
-                'byproduct_ids': [(0, 0, {
-                    'product_id': product.id,
-                    'product_qty': 1.0,
-                    'product_uom_id': product.uom_id.id,
-                }) for product in aluminum_products.values()],
             })
 
             production = Production.create({

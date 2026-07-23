@@ -39,7 +39,8 @@ class ProductTemplate(models.Model):
 
     @api.depends('alum_profile', 'color_id', 'length')
     def _compute_name(self):
-        """Generate cutting list name: Profile - Color - Length"""
+        """Generate cutting list name: Profile - Color - Length (bare number,
+        e.g. "700 - RAL8014 - 6000" - no "L:" prefix or "mm" suffix)."""
         for record in self:
             if not (record.alum_profile or record.color_id):
                 # Not an aluminum/cutlist product: leave any manually entered name as-is.
@@ -51,17 +52,27 @@ class ProductTemplate(models.Model):
             if record.color_id:
                 parts.append(record.color_id.name)
             if record.length:
-                unit = 'mm' if record.material_type == 'aluminum' else ''
-                parts.append('L:%.0f%s' % (record.length, unit) if unit else 'L:%s' % record.length)
+                parts.append('%g' % record.length)
             record.name = ' - '.join(parts)
 
     @api.model_create_multi
     def create(self, vals_list):
         mm_uom = self.env.ref('uom.product_uom_millimeter', raise_if_not_found=False)
-        if mm_uom:
-            for vals in vals_list:
-                if vals.get('material_type') == 'aluminum' and not vals.get('uom_id'):
-                    vals['uom_id'] = mm_uom.id
+        for vals in vals_list:
+            if vals.get('material_type') == 'aluminum' and mm_uom and not vals.get('uom_id'):
+                vals['uom_id'] = mm_uom.id
+            # Applies regardless of how the product is created - manually via
+            # the product form, through the import wizard, or the parametric
+            # window generator - so none of them has to remember to set it.
+            if vals.get('material_type') and 'is_storable' not in vals:
+                vals['is_storable'] = True
+            if vals.get('alum_profile') and not (vals.get('categ_id') and vals.get('sub_categ_id')):
+                base = self._ajo_find_base_material_product(vals['alum_profile'], vals.get('color_id'))
+                if base:
+                    if not vals.get('categ_id') and base.categ_id:
+                        vals['categ_id'] = base.categ_id.id
+                    if not vals.get('sub_categ_id') and base.sub_categ_id:
+                        vals['sub_categ_id'] = base.sub_categ_id.id
         return super().create(vals_list)
 
     def write(self, vals):
@@ -69,7 +80,42 @@ class ProductTemplate(models.Model):
             mm_uom = self.env.ref('uom.product_uom_millimeter', raise_if_not_found=False)
             if mm_uom:
                 vals = dict(vals, uom_id=mm_uom.id)
-        return super().write(vals)
+        if vals.get('material_type') and 'is_storable' not in vals:
+            vals = dict(vals, is_storable=True)
+        res = super().write(vals)
+        if 'alum_profile' in vals or 'color_id' in vals:
+            for record in self:
+                if not record.alum_profile or (record.categ_id and record.sub_categ_id):
+                    continue
+                base = self._ajo_find_base_material_product(
+                    record.alum_profile.id, record.color_id.id if record.color_id else False,
+                )
+                if not base or base.id == record.id:
+                    continue
+                update_vals = {}
+                if not record.categ_id and base.categ_id:
+                    update_vals['categ_id'] = base.categ_id.id
+                if not record.sub_categ_id and base.sub_categ_id:
+                    update_vals['sub_categ_id'] = base.sub_categ_id.id
+                if update_vals:
+                    # Bypass this same override on the follow-up write: it
+                    # never touches alum_profile/color_id, so there's nothing
+                    # more for it to do, only avoidable recursion.
+                    super(ProductTemplate, record).write(update_vals)
+        return res
+
+    def _ajo_find_base_material_product(self, alum_profile_id, color_id):
+        """Find an existing aluminum product (any length) for a given
+        profile/color, used as the source of Category/Sub Category info for
+        a sibling product - manually created, imported, or a
+        parametrically-generated offcut - that doesn't have them set yet."""
+        if not alum_profile_id:
+            return self.browse()
+        return self.search([
+            ('alum_profile', '=', alum_profile_id),
+            ('material_type', '=', 'aluminum'),
+            ('color_id', '=', color_id or False),
+        ], limit=1)
 
     @api.onchange('material_type')
     def _onchange_material_type_uom(self):
@@ -77,6 +123,22 @@ class ProductTemplate(models.Model):
             mm_uom = self.env.ref('uom.product_uom_millimeter', raise_if_not_found=False)
             if mm_uom:
                 self.uom_id = mm_uom
+        if self.material_type:
+            self.is_storable = True
+
+    @api.onchange('alum_profile', 'color_id')
+    def _onchange_alum_profile_color_category(self):
+        if not self.alum_profile or (self.categ_id and self.sub_categ_id):
+            return
+        base = self._ajo_find_base_material_product(
+            self.alum_profile.id, self.color_id.id if self.color_id else False,
+        )
+        if not base or base.id == self._origin.id:
+            return
+        if not self.categ_id and base.categ_id:
+            self.categ_id = base.categ_id
+        if not self.sub_categ_id and base.sub_categ_id:
+            self.sub_categ_id = base.sub_categ_id
 
     @api.model
     def get_or_create_material_product(self, material_type, profile_code, color_code,
@@ -115,19 +177,54 @@ class ProductTemplate(models.Model):
             vals = {
                 # 'name' is left unset: _compute_name derives it from
                 # alum_profile + color_id (+ length, in mm, for aluminum).
+                # 'is_storable' and Category/Sub Category are filled in by
+                # create()'s own logic above - no need to set them here.
                 'alum_profile': alum_profile.id,
                 'color_id': color.id if color else False,
                 'material_type': material_type,
                 'type': 'consu',
             }
-            if material_type == 'aluminum':
-                # Lot tracking is required for the offcut/waste workflow:
-                # each reusable leftover piece is stored as its own lot
-                # carrying its exact length (see models/mrp_offcut.py).
-                vals['tracking'] = 'lot'
-                if length:
-                    vals['length'] = length
+            if material_type == 'aluminum' and length:
+                vals['length'] = length
             template = self.create(vals)
+        return template.product_variant_id
+
+    @api.model
+    def get_or_create_offcut_product(self, alum_profile, color, length):
+        """Find or create a distinct product for a specific reusable aluminum
+        offcut length: same profile/color as the master bar it was cut from,
+        but its own product - keyed additionally by `length` - so an offcut
+        is never confused with (and never forces lot tracking onto) the
+        master profile product. Its Category/Sub Category are inserted (on
+        creation, via create()'s own logic above) or backfilled here (if
+        missing on an already-existing offcut product) from the base profile
+        product of the same profile/color, so an offcut is never left
+        uncategorized."""
+        color_id = color.id if color else False
+        template = self.search([
+            ('alum_profile', '=', alum_profile.id),
+            ('material_type', '=', 'aluminum'),
+            ('color_id', '=', color_id),
+            ('length', '=', length),
+        ], limit=1)
+        if not template:
+            template = self.create({
+                'alum_profile': alum_profile.id,
+                'color_id': color_id,
+                'material_type': 'aluminum',
+                'length': length,
+                'type': 'consu',
+            })
+        elif not (template.categ_id and template.sub_categ_id):
+            base = self._ajo_find_base_material_product(alum_profile.id, color_id)
+            if base and base.id != template.id:
+                update_vals = {}
+                if not template.categ_id and base.categ_id:
+                    update_vals['categ_id'] = base.categ_id.id
+                if not template.sub_categ_id and base.sub_categ_id:
+                    update_vals['sub_categ_id'] = base.sub_categ_id.id
+                if update_vals:
+                    template.write(update_vals)
         return template.product_variant_id
 
 class ProductSubCategory(models.Model):

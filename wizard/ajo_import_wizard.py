@@ -255,20 +255,16 @@ class AjoImportWizard(models.TransientModel):
         if template:
             return template.product_variant_id
 
-        vals = {
+        template = self.env['product.template'].create({
             # 'name' is left unset: product.template._compute_name derives it
             # from alum_profile + color_id (+ length, in mm, for aluminum).
+            # 'is_storable' and Category/Sub Category are filled in by
+            # product.template.create()'s own logic - no need to set them here.
             'alum_profile': alum_profile.id,
             'color_id': color.id if color else False,
             'material_type': material_type,
             'type': 'consu',
-        }
-        if material_type == 'aluminum':
-            # Lot tracking is required for the offcut/waste workflow: each
-            # reusable leftover piece is stored as its own lot carrying its
-            # exact length (see models/mrp_offcut.py).
-            vals['tracking'] = 'lot'
-        template = self.env['product.template'].create(vals)
+        })
         messages.append(_('Created material product %s.') % template.name)
         return template.product_variant_id
 

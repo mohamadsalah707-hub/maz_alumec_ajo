@@ -24,15 +24,4 @@
             </xpath>
         </field>
     </record>
-
-    <record id="view_stock_lot_form_inherit_offcut" model="ir.ui.view">
-        <field name="name">stock.lot.form.inherit.offcut</field>
-        <field name="model">stock.lot</field>
-        <field name="inherit_id" ref="stock.view_production_lot_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//field[@name='ref']" position="after">
-                <field name="offcut_length"/>
-            </xpath>
-        </field>
-    </record>
 </odoo>

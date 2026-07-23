@@ -8,17 +8,6 @@ from odoo.exceptions import UserError
 DEFAULT_OFFCUT_MIN_LENGTH = 2000.0
 
 
-class StockLot(models.Model):
-    _inherit = 'stock.lot'
-
-    offcut_length = fields.Float(
-        string='Offcut Length (mm)', digits=(16, 2),
-        help='Exact usable length of this specific aluminum profile leftover '
-             'piece. Set automatically when a Manufacturing Order generates '
-             'this lot as a reusable offcut.',
-    )
-
-
 class MrpProduction(models.Model):
     _inherit = 'mrp.production'
 
@@ -39,101 +28,99 @@ class MrpProduction(models.Model):
           - below the scrap threshold: real scrap. The bar was already fully
             deducted by ordinary component consumption, so nothing further is
             done - it is simply not returned to stock as a usable profile.
-          - at or above the scrap threshold: a reusable offcut. The matching
-            Byproduct line's stock.move on this Manufacturing Order is given
-            one move line per qualifying offcut, each carrying its own
-            freshly-created lot (with the exact leftover length stored on
-            it), and routed into the warehouse's dedicated Offcuts location.
+          - at or above the scrap threshold: a reusable offcut. A distinct
+            product is found or created for that exact profile/color/length
+            (see product.template.get_or_create_offcut_product), and a
+            standard stock.move receives one unit of it into the warehouse's
+            dedicated Offcuts location - entirely independent of the
+            Manufacturing Order's own component/finished moves, so it never
+            needs the consumed profile itself to be lot-tracked.
         """
         threshold = self._ajo_get_offcut_threshold()
-        Lot = self.env['stock.lot']
 
         for production in self:
-            offcut_location = False
-            if production.warehouse_id:
-                offcut_location = production.warehouse_id._get_or_create_offcut_location()
-
-            aluminum_byproduct_moves = production.move_byproduct_ids.filtered(
-                lambda m: m.product_id.material_type == 'aluminum'
+            raw_moves = production.move_raw_ids.filtered(
+                lambda m: not m.offcut_processed and m.product_id.material_type == 'aluminum'
             )
-            # Default every aluminum byproduct line to "nothing produced" -
-            # it only gets a real quantity/lot below if at least one
-            # qualifying offcut was actually logged for that product.
-            unprocessed_byproducts = aluminum_byproduct_moves.filtered(lambda m: not m.offcut_processed)
-            unprocessed_byproducts.write({'product_uom_qty': 0.0, 'quantity': 0.0})
+            for raw_move in raw_moves:
+                if raw_move.remaining_length and raw_move.remaining_length >= threshold:
+                    production._ajo_create_offcut_move(raw_move, threshold)
+            raw_moves.write({'offcut_processed': True})
 
-            byproduct_move_by_product = {m.product_id.id: m for m in aluminum_byproduct_moves}
+    def _ajo_create_offcut_move(self, raw_move, threshold):
+        self.ensure_one()
+        base_tmpl = raw_move.product_id.product_tmpl_id
+        if not base_tmpl.alum_profile:
+            raise UserError(_(
+                'Cannot generate an offcut for "%s": it has no Alum. Profile '
+                'master set, so a matching offcut product cannot be found or '
+                'created.'
+            ) % raw_move.product_id.display_name)
 
-            qualifying_raw_moves = production.move_raw_ids.filtered(
-                lambda m: (
-                    m.remaining_length
-                    and not m.offcut_processed
-                    and m.product_id.material_type == 'aluminum'
-                    and m.remaining_length >= threshold
-                )
-            )
-            offcuts_by_product = {}
-            for raw_move in qualifying_raw_moves:
-                offcuts_by_product.setdefault(raw_move.product_id.id, []).append(raw_move)
+        offcut_product = self.env['product.template'].get_or_create_offcut_product(
+            base_tmpl.alum_profile, base_tmpl.color_id, raw_move.remaining_length,
+        )
 
-            for product_id, raw_moves in offcuts_by_product.items():
-                byproduct_move = byproduct_move_by_product.get(product_id)
-                if not byproduct_move:
-                    raise UserError(_(
-                        'No matching Byproduct line was found on this Manufacturing '
-                        'Order\'s Bill of Materials for "%s". Add a Byproduct line for '
-                        'this same product before closing the order, so its reusable '
-                        'offcuts have somewhere to go.'
-                    ) % raw_moves[0].product_id.display_name)
+        source_location = self.env['stock.location'].search([
+            ('usage', '=', 'production'),
+            ('company_id', 'in', [self.company_id.id, False]),
+        ], limit=1)
+        dest_location = raw_move.location_dest_id
+        if self.warehouse_id:
+            dest_location = self.warehouse_id._get_or_create_offcut_location()
 
-                lots = Lot
-                for raw_move in raw_moves:
-                    lots |= Lot.create({
-                        'product_id': product_id,
-                        'company_id': production.company_id.id,
-                        'name': self.env['ir.sequence'].next_by_code('ajo.offcut.lot') or _('New'),
-                        'offcut_length': raw_move.remaining_length,
-                    })
+        move = self.env['stock.move'].create({
+            'product_id': offcut_product.id,
+            'product_uom_qty': 1.0,
+            'product_uom': offcut_product.uom_id.id,
+            'location_id': (source_location or raw_move.location_dest_id).id,
+            'location_dest_id': dest_location.id,
+            'company_id': self.company_id.id,
+            'origin': self.name,
+        })
+        move._action_confirm()
+        move._action_assign()
+        move.picked = True
+        # Explicitly (re)create the move line rather than relying on the
+        # quantity inverse to generate one: _action_assign() on a move
+        # sourced from a virtual location does not always produce a move
+        # line here, and without one _action_done() silently completes the
+        # move with nothing actually received into stock.
+        move.move_line_ids = [(5, 0, 0)] + [(0, 0, {
+            'product_id': offcut_product.id,
+            'company_id': self.company_id.id,
+            'quantity': 1.0,
+            'location_id': move.location_id.id,
+            'location_dest_id': move.location_dest_id.id,
+        })]
+        move.quantity = 1.0
+        move._action_done()
+        return move
 
-                dest_location = offcut_location or byproduct_move.location_dest_id
-                byproduct_move.write({
-                    'product_uom_qty': len(lots),
-                    'quantity': len(lots),
-                    'picked': True,
-                    'location_dest_id': dest_location.id,
-                    'move_line_ids': [(0, 0, {
-                        'product_id': product_id,
-                        'company_id': production.company_id.id,
-                        'lot_id': lot.id,
-                        'quantity': 1,
-                        'location_id': byproduct_move.location_id.id,
-                        'location_dest_id': dest_location.id,
-                    }) for lot in lots],
-                })
-
-            # Mark every considered raw move as processed so re-running (e.g.
-            # if button_mark_done shows a backorder wizard and is invoked
-            # again) never double-creates lots/offcuts.
-            production.move_raw_ids.filtered(
-                lambda m: m.remaining_length and m.product_id.material_type == 'aluminum'
-            ).write({'offcut_processed': True})
-
-    def _ajo_suggest_offcut_lot(self, product_id, required_length):
-        """Best-fit helper: given a raw material product and the length
-        needed for a new cut, return the smallest available offcut lot (in
-        this product's warehouse Offcuts location) that is long enough to
-        supply it - so operators are pointed at using up leftovers before
-        opening a brand new 6000mm bar. Returns an empty recordset if no
+    def _ajo_suggest_offcut_product(self, alum_profile_id, color_id, required_length):
+        """Best-fit helper: given a profile/color and the length needed for a
+        new cut, return the smallest existing offcut product (already in the
+        warehouse's Offcuts location, with stock on hand) that is long
+        enough to supply it - so operators are pointed at using up leftovers
+        before opening a brand new bar. Returns an empty recordset if no
         offcut is currently long enough."""
         self.ensure_one()
         if not self.warehouse_id or not self.warehouse_id.offcut_location_id:
-            return self.env['stock.lot']
+            return self.env['product.product']
 
-        quants = self.env['stock.quant'].search([
-            ('product_id', '=', product_id),
-            ('location_id', '=', self.warehouse_id.offcut_location_id.id),
-            ('quantity', '>', 0),
-            ('lot_id.offcut_length', '>=', required_length),
-        ], order='lot_id')
-        best = quants.sorted(lambda q: q.lot_id.offcut_length)
-        return best[:1].lot_id
+        templates = self.env['product.template'].search([
+            ('alum_profile', '=', alum_profile_id),
+            ('material_type', '=', 'aluminum'),
+            ('color_id', '=', color_id),
+            ('length', '>=', required_length),
+        ], order='length asc')
+        for template in templates:
+            variant = template.product_variant_id
+            quant = self.env['stock.quant'].search([
+                ('product_id', '=', variant.id),
+                ('location_id', '=', self.warehouse_id.offcut_location_id.id),
+                ('quantity', '>', 0),
+            ], limit=1)
+            if quant:
+                return variant
+        return self.env['product.product']
