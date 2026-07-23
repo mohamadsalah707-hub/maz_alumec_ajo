@@ -7,13 +7,50 @@
 		<field name="inherit_id" ref="purchase.purchase_order_form"/>
 		<field name="arch" type="xml">
 			<xpath expr="//field[@name='order_line']/list/field[@name='product_qty']" position="before">
+				<field name="product_code" optional="show"/>
+				<field name="categ_id" optional="show"/>
+				<field name="sub_categ_id" optional="show"/>
 				<field name="width"/>
 				<field name="total_length" string="Height"/>
 				<field name="area" string="Area/m²"/>
 				<field name="color"/>
+				<field name="glass_type_id" optional="show"/>
 				<field name="profile_length" optional="show"/>
 				<field name="alu_weight_per_meter" optional="show"/>
 				<field name="alu_price_per_kg" optional="show"/>
+			</xpath>
+			<xpath expr="//field[@name='order_line']/list/field[@name='price_unit']" position="after">
+				<field name="alu_unit_cost" string="Unit Cost" optional="show"/>
+				<field name="price_unit_discounted" string="Net Cost" optional="show"/>
+				<field name="vat_applicable" optional="show"/>
+			</xpath>
+			<xpath expr="//page[@name='purchase_delivery_invoice']/group" position="after">
+				<group>
+					<group name="maz_shipping_info" string="Shipping">
+						<field name="shipping_method"/>
+						<field name="shipping_terms"/>
+						<field name="global_discount_percent"/>
+						<field name="global_discount_amount"/>
+					</group>
+					<group name="maz_approval_info" string="Approval">
+						<field name="approved_by_id"/>
+						<field name="nb_pages"/>
+						<field name="memo_1"/>
+						<field name="memo_2"/>
+						<field name="memo_3"/>
+					</group>
+				</group>
+			</xpath>
+			<xpath expr="//sheet/notebook" position="inside">
+				<page string="Extra Costs" name="maz_extra_costs">
+					<field name="extra_cost_line_ids">
+						<list editable="bottom">
+							<field name="glass_type_id"/>
+							<field name="description"/>
+							<field name="cost"/>
+						</list>
+					</field>
+				</page>
 			</xpath>
 		</field>
 	</record>

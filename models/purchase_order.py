@@ -9,7 +9,33 @@ import logging
 _logger = logging.getLogger('MAZ PO')
 
 class PurchaseOrder(models.Model):
-    _inherit = 'purchase.order'         
+    _inherit = 'purchase.order'
+
+    # Fields present on the legacy (pre-Odoo) Purchase Order screen this
+    # module used to run on, added so nothing from that form is lost.
+    shipping_method = fields.Char(string='Shipping Method')
+    shipping_terms = fields.Char(string='Shipping Terms')
+    approved_by_id = fields.Many2one('res.users', string='Approved By')
+    nb_pages = fields.Integer(string='Nb. of Pages')
+    memo_1 = fields.Char(string='Memo 1')
+    memo_2 = fields.Char(string='Memo 2')
+    memo_3 = fields.Char(string='Memo 3')
+    global_discount_percent = fields.Float(string='Discount %', digits=(16, 2))
+    global_discount_amount = fields.Monetary(
+        string='Discount', currency_field='currency_id',
+        compute='_compute_global_discount_amount', store=True,
+    )
+    extra_cost_line_ids = fields.One2many(
+        'purchase.order.extra.cost', 'order_id', string='Extra Costs',
+        help="Freeform additional costs (freight, handling, ...) not tied to "
+             "a specific product line - matches the small G.Type/Description/"
+             "Cost table on the legacy Purchase Order form.",
+    )
+
+    @api.depends('amount_untaxed', 'global_discount_percent')
+    def _compute_global_discount_amount(self):
+        for order in self:
+            order.global_discount_amount = order.amount_untaxed * order.global_discount_percent / 100.0
 
     def action_open_iso_checklist(self):
         order_ids = self.ids or self.env.context.get('active_ids', [])
@@ -64,6 +90,22 @@ class PurchaseOrderLine(models.Model):
     area = fields.Float(string='Area/m²', digits=(16, 2), compute='_compute_area', store=True)
     profile_length = fields.Float(string='Profile Length', digits=(16, 2), )
     width = fields.Float(string='Width', digits=(16, 2), )
+
+    # Fields present on the legacy Purchase Order screen's line grid, not
+    # otherwise covered by the fields above or by core purchase.order.line.
+    product_code = fields.Char(
+        string='Product Code', related='product_id.default_code', store=True, readonly=True,
+    )
+    categ_id = fields.Many2one(
+        'product.category', string='Category',
+        related='product_id.product_tmpl_id.categ_id', store=True, readonly=True,
+    )
+    sub_categ_id = fields.Many2one(
+        'product_sub_category', string='Sub Category',
+        related='product_id.product_tmpl_id.sub_categ_id', store=True, readonly=True,
+    )
+    glass_type_id = fields.Many2one('ajo_glass_type', string='G.Type')
+    vat_applicable = fields.Boolean(string='VAT Y/N', default=True)
 
     # ------------------------------------------------------------------
     # Aluminum profile purchasing by the piece, priced per kg (see
@@ -229,5 +271,18 @@ class PurchaseOrderLine(models.Model):
             'context': {'default_purchase_line_id': self.id}
         }
 
+
+class PurchaseOrderExtraCost(models.Model):
+    """Freeform additional cost lines (freight, handling, ...) on a Purchase
+    Order, not tied to a product - matches the small G.Type/Description/Cost
+    table on the legacy Purchase Order form."""
+    _name = 'purchase.order.extra.cost'
+    _description = 'Purchase Order Extra Cost'
+
+    order_id = fields.Many2one('purchase.order', string='Purchase Order', required=True, ondelete='cascade')
+    glass_type_id = fields.Many2one('ajo_glass_type', string='G.Type')
+    description = fields.Char(string='Description')
+    cost = fields.Monetary(string='Cost', currency_field='currency_id')
+    currency_id = fields.Many2one(related='order_id.currency_id', store=True)
 
 

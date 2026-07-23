@@ -35,18 +35,52 @@ same PO without conflict.
 | `profile_length` | Float (m) | Length of a single bar/piece. |
 | `alu_weight_per_meter` | Float (kg/m) | Weight per linear meter for *this line*. Auto-fetched from the product's `weight_per_meter` when the Product is set (onchange); editable afterwards, so a line can diverge from the product's default if needed. |
 | `alu_price_per_kg` | Monetary | Purchase rate per kilogram. |
-| `alu_price_by_weight` | Boolean | Opt-in toggle. When enabled, the line's standard `price_unit` is kept in sync with `alu_unit_cost` (see below); when disabled, `price_unit` behaves exactly as standard Odoo (entered directly / from vendor pricelists). |
-| `alu_unit_cost` | Float, computed, stored | `alu_weight_per_meter * profile_length * alu_price_per_kg`. |
-| `alu_total_length` | Float (m), computed, stored | `alu_qty_pieces * profile_length`. |
+| `alu_unit_cost` | Float, computed, stored | `alu_weight_per_meter * profile_length/1000 * alu_price_per_kg`. |
+| `alu_total_length` | Float (mm), computed, stored | `alu_qty_pieces * profile_length`. |
 | `alu_total_weight` | Float (kg), computed, stored | `alu_total_length * alu_weight_per_meter`. |
 | `alu_total` | Monetary, computed, stored | `alu_qty_pieces * alu_unit_cost`. |
 
-`alu_price_by_weight` is not in the original field list but was added
-because "pricing based on a per-kilogram rate" needs to actually reach the
-order's real monetary total (`price_unit` / `price_subtotal`, used for
-taxes, vendor bills, and reporting) to be more than a cosmetic side
-computation. It's opt-in per line so it never surprises a line that's being
-priced the normal way (direct entry or vendor pricelist).
+There is no opt-in toggle: `price_unit` is kept in sync with `alu_unit_cost`
+automatically whenever `product_id.material_type == 'aluminum'` (both via
+`_onchange_alu_weight_pricing` for form feedback and `_sync_alu_price_unit`,
+called from `create()`/`write()`, for the server-side/API path). Non-aluminum
+lines are left completely alone.
+
+### 2.3 Legacy Purchase Order screen parity
+
+The following fields/columns were added to `purchase.order.line` to match
+columns present on this business's previous (pre-Odoo) Purchase Order
+screen that had no equivalent yet:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `product_code` | Char, related (`product_id.default_code`) | "Product code" column. |
+| `categ_id` | Many2one `product.category`, related | "Category" column. |
+| `sub_categ_id` | Many2one `product_sub_category`, related | "Sub-Category" column. |
+| `glass_type_id` | Many2one `ajo_glass_type` | "G.Type" column. |
+| `vat_applicable` | Boolean, default True | "VAT Y/N" column. |
+
+"Unit cost", "Net cost" and "Total" from the legacy grid map onto fields
+that already existed, just not yet exposed in this module's grid: `alu_unit_cost`
+(or `price_unit` for non-aluminum lines), core's `price_unit_discounted`
+(`price_unit` after the line's own `discount` %), and core's `price_subtotal`
+respectively - no new fields needed for those three.
+
+And the following were added at the `purchase.order` (header) level:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `shipping_method` / `shipping_terms` | Char | Free text, no core equivalent. |
+| `global_discount_percent` | Float | Order-level discount %, distinct from the existing per-line `discount`. |
+| `global_discount_amount` | Monetary, computed, stored | `amount_untaxed * global_discount_percent / 100`. |
+| `approved_by_id` | Many2one `res.users` | "Approved by". |
+| `nb_pages` | Integer | "Nb. of pages". |
+| `memo_1` / `memo_2` / `memo_3` | Char | The three free-text memo lines. |
+| `extra_cost_line_ids` | One2many `purchase.order.extra.cost` | The small G.Type/Description/Cost table (freight, handling, etc. not tied to a product line). |
+
+"Grand Total"/"Net Total"/11% TVA and "Comments" from the legacy footer
+already map onto core Odoo (`amount_untaxed`/`amount_total`/the tax totals
+widget, and `note`) - no new fields needed there.
 
 ## 3. Compute dependency graph
 

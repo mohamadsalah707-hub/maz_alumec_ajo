@@ -18,3 +18,4 @@ access_ajo_order_window,ajo.order.window,model_ajo_order_window,base.group_user,
 access_ajo_order_window_flag_value,ajo.order.window.flag.value,model_ajo_order_window_flag_value,base.group_user,1,1,1,1
 access_ajo_glass_type,ajo.glass.type,model_ajo_glass_type,base.group_user,1,1,1,1
 access_ajo_glass_thickness,ajo.glass.thickness,model_ajo_glass_thickness,base.group_user,1,1,1,1
+access_purchase_order_extra_cost,purchase.order.extra.cost,model_purchase_order_extra_cost,base.group_user,1,1,1,1
